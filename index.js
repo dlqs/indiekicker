@@ -34,5 +34,5 @@ app.use('/home', home)
 app.use('/user', user)
 
 app.listen(3000, 'localhost', () => {
-    console.log('Listening')
+    console.log('Listening at 3000')
 })
