@@ -12,13 +12,13 @@ const login = require('./routes/login')
 const app = express()
 
 
+app.use(bodyParser.urlencoded({ extended: true }))
+app.use(cookieParser())
 app.use(session({ 
     secret: 'example secret dog cat',
     saveUninitialized: false,
-    resave: false
+    resave: false,
 }))
-app.use(cookieParser())
-app.use(bodyParser.urlencoded({ extended: true }))
 app.set('view engine', 'pug')
 app.set("views", path.join(__dirname, "views"))
 
