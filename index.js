@@ -31,7 +31,7 @@ app.use(session({
 }))
 app.use(validator())
 app.set('view engine', 'pug')
-app.set("views", path.join(__dirname, "views"))
+app.set("views", path.join(__dirname, "views/layouts"))
 
 // add routers here
 app.use('/login', login)
@@ -42,5 +42,5 @@ app.use('/project', project)
 app.use('/logout', logout)
 
 app.listen(3000, 'localhost', () => {
-    console.log('Listening at 3000')
+    console.log('Listening at http://localhost:3000')
 })

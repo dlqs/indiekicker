@@ -1,0 +1,18 @@
+extends ../_bootstrap
+append styles
+	// Custom styles for this template
+	link(href='../css/signin.css', rel='stylesheet')
+block body
+	.container
+		form.form-signin(method='post')
+			h2.form-signin-heading Please sign in
+			label.sr-only(for='username') Email address
+			input#username.form-control(type='text', placeholder='Username' required='', autofocus='', name='username')
+			label.sr-only(for='inputPassword') Password
+			input#inputPassword.form-control(type='password', placeholder='Password', required='', name='password')
+			br
+			if (warning)
+				+alert-warning("<strong>Warning!</strong> Incorrect username or password.")
+			button.btn.btn-lg.btn-primary.btn-block(type='submit') Sign in
+
+

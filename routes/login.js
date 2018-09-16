@@ -6,7 +6,7 @@ const router = new Router()
 const db = require('../db')
 
 router.get('/', (req, res, next) => {
-    res.render('login')
+    res.render('sign-in')
 })
 
 router.post('/', async (req, res, next) => {
@@ -32,13 +32,13 @@ router.post('/', async (req, res, next) => {
             res.redirect('/')
         } else {
             // error message
-            res.redirect('back')
+            res.render('sign-in', { warning: true })
         }
     }
 })
 
 router.get('/register', (req, res, next) => {
-    res.render('register')
+    res.render('register', { message: "hello"})
 })
 
 router.post('/register', async (req, res, next) => {
