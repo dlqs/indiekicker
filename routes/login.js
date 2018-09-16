@@ -1,4 +1,5 @@
 const Router = require('express-promise-router')
+const validator = require('express-validator')
 const crypto = require('crypto')
 const router = new Router()
 
@@ -41,7 +42,6 @@ router.get('/register', (req, res, next) => {
 })
 
 router.post('/register', async (req, res, next) => {
-    
 })
 
 module.exports = router
