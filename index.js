@@ -32,6 +32,7 @@ app.use(session({
 app.use(validator())
 app.set('view engine', 'pug')
 app.set("views", path.join(__dirname, "views/layouts"))
+app.use(express.static('assets'))
 
 // add routers here
 app.use('/login', login)

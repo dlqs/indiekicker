@@ -1,18 +1,20 @@
 extends ../_bootstrap
 append styles
 	// Custom styles for this template
-	link(href='../css/signin.css', rel='stylesheet')
+	link(href='/../css/signin.css', rel='stylesheet')
 block body
 	.container
 		form.form-signin(method='post')
 			h2.form-signin-heading Register for an account
-			label.sr-only(for='username') Email address
+			label.sr-only(for='username') Name
+			input#name.form-control(type='text', placeholder='Name' required='', autofocus='', name='name')
+			label.sr-only(for='email') Email address
+			input#email.form-control(type='text', placeholder='Email' required='', autofocus='', name='email')
+			label.sr-only(for='username') Username
 			input#username.form-control(type='text', placeholder='Username' required='', autofocus='', name='username')
 			label.sr-only(for='inputPassword') Password
-			input#inputPassword.form-control(type='password', placeholder='Password', required='', name='password')
+			input#password.form-control(type='password', placeholder='Password' required='', autofocus='', name='password')
 			br
-			if (warning)
-				+alert-warning("<strong>Warning!</strong> Incorrect username or password.")
-			button.btn.btn-lg.btn-primary.btn-block(type='submit') Sign in
+			button.btn.btn-lg.btn-primary.btn-block(type='submit') Complete registration
 
 
