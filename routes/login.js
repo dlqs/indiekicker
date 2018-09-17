@@ -6,7 +6,11 @@ const router = new Router()
 const db = require('../db')
 
 router.get('/', (req, res, next) => {
-    res.render('sign-in')
+    if (req.session.newuser) {
+        res.render('sign-in', { success: ['<strong>Success!</strong> Log in to your new account.']})
+    } else {
+        res.render('sign-in')
+    }
 })
 
 router.post('/', async (req, res, next) => {
@@ -42,22 +46,42 @@ router.get('/register', (req, res, next) => {
 })
 
 router.post('/register', [
-    check('username').isAlphanumeric().isLength({ min: 5 }),
-    check('password').isLength({ min: 5}),
+    check('username').isAlphanumeric().isLength({ min: 6 }),
+    check('password').isLength({ min: 6}),
     check('email').isEmail(),
     check('name').isAlpha(),
     ], async (req, res, next) => {
-        // express validator cannot check other fields
+        errors = validationResult(req).array().map(obj => {
+            return `<strong>Error:</strong> ${obj.param} has ${obj.msg.toLowerCase()}`
+        })
+        // express validator cannot compare with other fields in same body
         if (req.body.password !== req.body.passwordconfirm) {
-            res.render('register', { error: ['<strong>Error:</strong> Passwords do not match'] })
+            errors.push('<strong>Error:</strong> passwords do not match')
         }
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            console.log(errors.array())
-            res.render('register', { error: errors.array().map(obj => 
-                `<strong>Error:</strong> ${obj.param} has ${obj.msg.toLowerCase()}`) })
+
+        // check username, email unique
+        const usernameResult = await db.query('SELECT * from users WHERE username=lower($1)', [req.body.username])
+        if (usernameResult.rows.length > 0) errors.push('<strong>Error:</strong> username already taken')
+        const emailResult = await db.query('SELECT * from users WHERE email=lower($1)', [req.body.email])
+        if (emailResult.rows.length > 0) errors.push('<strong>Error:</strong> email already taken')
+
+        // send back
+        if (errors.length !== 0) {
+            res.render('register', { error: errors })
+            return
         }
-        res.render('sign-in', { success: ['Log in to your new account.'] })
+
+        try {
+            const result = 
+                await db.query('INSERT INTO users VALUES (default, $1, lower($2), lower($3), md5($4)::uuid, false, now(), NULL, NULL )',
+                [req.body.name, req.body.username, req.body.email, req.body.password])
+        } catch (error) {
+            console.log(error)
+            return
+        }
+        req.session.newuser = true
+        res.redirect('sign-in')
 })
+
 
 module.exports = router

@@ -9,9 +9,9 @@ block body
 			label.sr-only(for='username') Name
 			input#name.form-control(type='text', placeholder='Name' required='', autofocus='', name='name')
 			label.sr-only(for='username') Username
-			input#username.form-control(type='text', placeholder='Username' required='', autofocus='', name='username')
+			input#username.form-control(type='text', placeholder='Username (at least 6 characters)' required='', autofocus='', name='username')
 			label.sr-only(for='inputPassword') Password
-			input#password.form-control(type='password', placeholder='Password' required='', autofocus='', name='password')
+			input#password.form-control(type='password', placeholder='Password (at least 6 characters)' required='', autofocus='', name='password')
 			label.sr-only(for='inputPassword') Confirm password
 			input#passwordConfirm.form-control(type='password', placeholder='Confirm Password' required='', autofocus='', name='passwordconfirm'
 			onblur='if ($("#password").val()!==$("#passwordConfirm").val()) { $("#passwordConfirm").css({\'background-color\': \'#f2dede\' }) } else { $("#passwordConfirm").css({\'background-color\':\'#fff\'}) } ')
@@ -23,5 +23,8 @@ block body
 			if (error)
 				each message in error
 					+alert-warning(message)
+		
+				
+
 
 
