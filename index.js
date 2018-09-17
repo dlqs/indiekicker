@@ -22,6 +22,7 @@ const isAUser = (req, res, next) => {
     next()
 }
 
+app.use(express.static('assets'))
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(session({ 
@@ -32,7 +33,6 @@ app.use(session({
 app.use(validator())
 app.set('view engine', 'pug')
 app.set("views", path.join(__dirname, "views/layouts"))
-app.use(express.static('assets'))
 
 // add routers here
 app.use('/login', login)

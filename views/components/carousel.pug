@@ -26,12 +26,12 @@ mixin carousel(id,items)
 			each item,index in items
 				if(index === 0)
 					.item.active
-						img(src="#{item.image}")
+						img(src=`${item.image}`)
 						+carousel-caption(item)
 							
 				else
 					.item
-						img(src="#{item.image}")
+						img(src=`${item.image}`)
 						+carousel-caption(item)
 
 		//-  Controls
