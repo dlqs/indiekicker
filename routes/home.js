@@ -20,7 +20,7 @@ router.get("/", async (req, res, next) => {
     //        id: 1
     //    } ...
 
-    // select top two sets of top 3 projects to display
+    // select top two sets of top 3 projects to display (MUST BE 3)
     // maybe consider almost funded?
     let rowProjects = await db.query('SELECT * FROM projects LIMIT 3')
     let carouselProjects = await db.query('SELECT * FROM projects LIMIT 3')
@@ -44,7 +44,11 @@ router.get("/", async (req, res, next) => {
     if (rowProjects.length !== 3 && carouselProjects.length !== 3) {
         console.log('rowprojects and carousel projects must be length 3')
     }
-    res.render('carousel', { carouselProjects: carouselProjects, rowProjects : rowProjects })
+    res.render('carousel', { 
+        carouselProjects: carouselProjects, 
+        rowProjects : rowProjects,
+        userid: req.session.userid,
+    })
 })
 
 module.exports = router

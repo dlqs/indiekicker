@@ -5,42 +5,52 @@ append styles
 block body
 	.navbar-wrapper
 		.container
-			nav.navbar.navbar-inverse.navbar-static-top
-				.container
-					.navbar-header
-						button(type="button" ,class="navbar-toggle collapsed", data-toggle="collapse", data-target="#navbar" ,aria-expanded="false", aria-controls="navbar")
-							span.sr-only Toggle navigation
-							span.icon-bar
-							span.icon-bar
-							span.icon-bar
-							
-						a(class="navbar-brand", href="#") indiekicker
-					#navbar.navbar-collapse.collapse
-						ul.nav.navbar-nav
-							li.active
-								a(href="/") Home
-							li
-								a(href="/projects") All projects
-							li
-								a(href="/user") My profile
-							//li.dropdown
-							//	a.dropdown-toggle(href='#', data-toggle='dropdown', role='button', aria-expanded='false')
-							//		| Dropdown 
-							//		span.caret
-							//	ul.dropdown-menu(role='menu')
-							//		li
-							//			a(href='#') Action
-							//		li
-							//			a(href='#') Another action
-							//		li
-							//			a(href='#') Something else here
-							//		li.divider
-							//		li.dropdown-header Nav header
-							//		li
-							//			a(href='#') Separated link
-							//		li
-							//			a(href='#') One more separated link
-							
+			+navbar-fixed('indiekicker', 'navbar')
+				+nav_item("/","active") Home
+				+nav_item("/projects") All projects
+				+nav_item("/uusernameser/" + userid) My profile
+				form.navbar-form.navbar-right
+					.form-group
+						input.form-control(type='text', placeholder='Search projects')
+					button.btn.btn-success(type='submit') Search
+	//.navbar-wrapper
+	//	.container
+	//		nav.navbar.navbar-inverse.navbar-static-top
+	//			.container
+	//				.navbar-header
+	//					button(type="button" ,class="navbar-toggle collapsed", data-toggle="collapse", data-target="#navbar" ,aria-expanded="false", aria-controls="navbar")
+	//						span.sr-only Toggle navigation
+	//						span.icon-bar
+	//						span.icon-bar
+	//						span.icon-bar
+	//						
+	//					a(class="navbar-brand", href="#") indiekicker
+	//				#navbar.navbar-collapse.collapse
+	//					ul.nav.navbar-nav
+	//						li.active
+	//							a(href="/") Home
+	//						li
+	//							a(href="/projects") All projects
+	//						li
+	//							a(href="/user") My profile
+	//						//li.dropdown
+	//						//	a.dropdown-toggle(href='#', data-toggle='dropdown', role='button', aria-expanded='false')
+	//						//		| Dropdown 
+	//						//		span.caret
+	//						//	ul.dropdown-menu(role='menu')
+	//						//		li
+	//						//			a(href='#') Action
+	//						//		li
+	//						//			a(href='#') Another action
+	//						//		li
+	//						//			a(href='#') Something else here
+	//						//		li.divider
+	//						//		li.dropdown-header Nav header
+	//						//		li
+	//						//			a(href='#') Separated link
+	//						//		li
+	//						//			a(href='#') One more separated link
+	//						
 	// Carousel
 	// ==================================================
 	+carousel("myCarousel", carouselProjects)
