@@ -12,7 +12,11 @@ block body
 			input#inputPassword.form-control(type='password', placeholder='Password', required='', name='password')
 			br
 			if (warning)
-				+alert-warning("<strong>Warning!</strong> Incorrect username or password.")
+				each message in warning
+					+alert-warning(message)
+			if (success)
+				each message in success
+					+alert-success(message)
 			button.btn.btn-lg.btn-primary.btn-block(type='submit') Sign in
 			br
 			+a-btn('/login/register', 'lg btn-info btn-block') Register

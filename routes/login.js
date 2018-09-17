@@ -1,6 +1,6 @@
 const Router = require('express-promise-router')
-const validator = require('express-validator')
 const crypto = require('crypto')
+const { check, validationResult } = require('express-validator/check')
 const router = new Router()
 
 const db = require('../db')
@@ -32,16 +32,32 @@ router.post('/', async (req, res, next) => {
             res.redirect('/')
         } else {
             // error message
-            res.render('sign-in', { warning: true })
+            res.render('sign-in', { warning: ['<strong>Warning!</strong> Incorrect username or password.'] })
         }
     }
 })
 
 router.get('/register', (req, res, next) => {
-    res.render('register', { message: "hello"})
+    res.render('register')
 })
 
-router.post('/register', async (req, res, next) => {
+router.post('/register', [
+    check('username').isAlphanumeric().isLength({ min: 5 }),
+    check('password').isLength({ min: 5}),
+    check('email').isEmail(),
+    check('name').isAlpha(),
+    ], async (req, res, next) => {
+        // express validator cannot check other fields
+        if (req.body.password !== req.body.passwordconfirm) {
+            res.render('register', { error: ['<strong>Error:</strong> Passwords do not match'] })
+        }
+        const errors = validationResult(req)
+        if (!errors.isEmpty()) {
+            console.log(errors.array())
+            res.render('register', { error: errors.array().map(obj => 
+                `<strong>Error:</strong> ${obj.param} has ${obj.msg.toLowerCase()}`) })
+        }
+        res.render('sign-in', { success: ['Log in to your new account.'] })
 })
 
 module.exports = router
