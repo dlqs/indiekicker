@@ -3,16 +3,19 @@ append styles
 	// Custom styles for this template 
 	link(href="../css/carousel.css", rel="stylesheet")
 block body
-	.navbar-wrapper
-		.container
-			+navbar-fixed('indiekicker', 'navbar')
-				+nav_item("/","active") Home
-				+nav_item("/projects") All projects
-				+nav_item("/uusernameser/" + userid) My profile
-				form.navbar-form.navbar-right
-					.form-group
-						input.form-control(type='text', placeholder='Search projects')
-					button.btn.btn-success(type='submit') Search
+	.container
+		+navbar-fixed('indiekicker', 'navbar')
+			li
+				a Hello, #{session.name}
+			+nav_item("/","active") Home
+			+nav_item("/projects") All projects
+			+nav_item("/user/" + session.userid) My profile
+			form.navbar-form.navbar-nav
+				.form-group
+					input.form-control(type='text', placeholder='Search projects')
+				button.btn.btn-success(type='submit') Search
+			form.navbar-form.navbar-right(method='post', action='/logout')
+				button.btn.btn-primary(type='submit') Logout
 	//.navbar-wrapper
 	//	.container
 	//		nav.navbar.navbar-inverse.navbar-static-top
@@ -121,7 +124,7 @@ block body
 			p.pull-right
 				a(href='#') Back to top
 			p
-				| © 2014 Company, Inc. · 
+				| © 2018 Indiekicker Inc. 
 				a(href='#') Privacy
 				|  · 
 				a(href='#') Terms

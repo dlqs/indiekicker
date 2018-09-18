@@ -47,7 +47,7 @@ router.get("/", async (req, res, next) => {
     res.render('carousel', { 
         carouselProjects: carouselProjects, 
         rowProjects : rowProjects,
-        userid: req.session.userid,
+        session: req.session
     })
 })
 

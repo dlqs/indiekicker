@@ -6,8 +6,12 @@ const router = new Router()
 const db = require('../db')
 
 router.get('/', (req, res, next) => {
-    if (req.session.newuser) {
+    if (req.query.new) {
         res.render('sign-in', { success: ['<strong>Success!</strong> Log in to your new account.']})
+    } else if (req.query.timedout) {
+        res.render('sign-in', { warning: ['Your session has timed out. To access user pages, please log in again.']})
+    } else if (req.query.loggedout) {
+        res.render('sign-in', { success: ['<strong>Logged out!</strong> See you next time.']})
     } else {
         res.render('sign-in')
     }
@@ -22,6 +26,7 @@ router.post('/', async (req, res, next) => {
             req.session.authenticated = true
             req.session.userid = rows[0].userid
             req.session.username = rows[0].username
+            req.session.name = rows[0].name
 
             // update last login time
             await db.query("UPDATE users SET lastlogin=now() WHERE userid=$1", [req.session.userid])
@@ -79,8 +84,7 @@ router.post('/register', [
             console.log(error)
             return
         }
-        req.session.newuser = true
-        res.redirect('sign-in')
+        res.redirect('/login?new=true')
 })
 
 
