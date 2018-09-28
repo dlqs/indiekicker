@@ -91,10 +91,15 @@ router.post('/:id', [
                 res.session.name = req.body.name
             }
             if (req.body.username) {
+                await db.query('UPDATE users SET username=$1 WHERE userid=$2', [req.body.username, req.session.userid])
+                res.session.username = req.body.username
             }
             if (req.body.password) {
+                await db.query('UPDATE users SET passworddigest=md5($1)::uuid WHERE userid=$2', [req.body.password, req.session.userid])
             }
             if (req.body.email) {
+                await db.query('UPDATE users SET email=$1 WHERE userid=$2', [req.body.email, req.session.userid])
+                res.session.email = req.body.email
             }
         } catch (error) {
             return

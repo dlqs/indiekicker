@@ -88,5 +88,4 @@ router.post('/register', [
         res.redirect('/login?new=true')
 })
 
-
 module.exports = router
