@@ -27,6 +27,7 @@ router.post('/', async (req, res, next) => {
             req.session.userid = rows[0].userid
             req.session.username = rows[0].username
             req.session.name = rows[0].name
+            req.session.email = rows[0].email
 
             // update last login time
             await db.query("UPDATE users SET lastlogin=now() WHERE userid=$1", [req.session.userid])
@@ -64,17 +65,17 @@ router.post('/register', [
             errors.push('<strong>Error:</strong> passwords do not match')
         }
 
-        // check username, email unique
-        const usernameResult = await db.query('SELECT * from users WHERE username=lower($1)', [req.body.username])
-        if (usernameResult.rows.length > 0) errors.push('<strong>Error:</strong> username already taken')
-        const emailResult = await db.query('SELECT * from users WHERE email=lower($1)', [req.body.email])
-        if (emailResult.rows.length > 0) errors.push('<strong>Error:</strong> email already taken')
-
         // send back
         if (errors.length !== 0) {
             res.render('register', { error: errors })
             return
         }
+
+        // check username, email unique
+        const usernameResult = await db.query('SELECT * from users WHERE username=lower($1)', [req.body.username])
+        if (usernameResult.rows.length > 0) errors.push('<strong>Error:</strong> username already taken')
+        const emailResult = await db.query('SELECT * from users WHERE email=lower($1)', [req.body.email])
+        if (emailResult.rows.length > 0) errors.push('<strong>Error:</strong> email already taken')
 
         try {
             const result = 

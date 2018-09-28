@@ -18,10 +18,35 @@ block body
 				button.btn.btn-primary(type='submit') Logout
 	.container
 		.starter-template
-			h1 Bootstrap starter template
+			h1 Hello, #{session.name}.
 			p.lead
-				| Use this document as a way to quickly start any new project.
-				br
-				|  All you get is this text and a mostly barebones HTML document.
+				| Welcome to your profile.
+		form(method='post')
+			h2.form-signin-heading Change profile information
+			label.sr-only(for='name') Name
+			input#name.form-control(type='text', placeholder=`${session.name}`, autofocus='', name='name')
+			br
+			label.sr-only(for='username') Username
+			input#username.form-control(type='text', placeholder=`${session.username}`, autofocus='', name='username')
+			br
+			label.sr-only(for='inputPassword') Password
+			input#password.form-control(type='password', placeholder='New Password (at least 6 characters)', autofocus='', name='password')
+			br
+			label.sr-only(for='inputPassword') Confirm password
+			input#passwordConfirm.form-control(type='password', placeholder='Confirm Password', autofocus='', name='passwordconfirm'
+			br
+			onblur='if ($("#password").val()!==$("#passwordConfirm").val()) { $("#passwordConfirm").css({\'background-color\': \'#f2dede\' }) } else { $("#passwordConfirm").css({\'background-color\':\'#fff\'}) } ')
+			br
+			label.sr-only(for='email') Email address
+			input#email.form-control(type='text', placeholder=`${session.email}`, autofocus='', name='email')
+			br
+			button.btn.btn-lg.btn-primary.btn-block(type='submit') Confirm change
+			br
+			if (error)
+				each message in error
+					+alert-warning(message)
+			if (success)
+				each message in success
+					+alert-warning(message)
 	
 
