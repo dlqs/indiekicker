@@ -1,0 +1,57 @@
+extends ../_bootstrap
+append styles
+	// Custom styles for this template
+	link(href='../css/starter-template.css', rel='stylesheet')
+block body
+	.container
+		+navbar-fixed('indiekicker', 'navbar', session.admin ? 'inverse': 'default')
+			li
+				a Hello, #{session.name}
+			+nav_item("/") Home
+			+nav_item("/project/all/1", "active") Projects
+			+nav_item("/category/all/1") Categories
+			+nav_item("/user/" + session.userid) My profile
+			if session.admin === true
+				+nav_item("/user/all") All users
+			form.navbar-form.navbar-nav(method='post', action='/project/search')
+				.form-group
+					input.form-control(name='searchparams', type='text', placeholder='Search keyword')
+				button.btn.btn-success(type='submit') Search
+			form.navbar-form.navbar-right(method='post', action='/logout')
+				button.btn.btn-primary(type='submit') Logout
+	.container
+		.starter-template
+			h1 Hello, #{session.name}.
+			p.lead
+				| Ready to synergize your team, harmonize your fengshui, and earn a shitton of money while saving orphan babies?
+				br
+				| Create your project today.
+		form(method='post')
+			h2.form-signin-heading Create project
+			label(for='name') Name
+			input#name.form-control(type='text', placeholder=`${session.name}`, autofocus='', name='name')
+			br
+			label(for='username') Username
+			input#username.form-control(type='text', placeholder=`${session.username}`, autofocus='', name='username')
+			br
+			label(for='inputPassword') Password
+			input#password.form-control(type='password', placeholder='New Password (at least 6 characters)', autofocus='', name='password')
+			br
+			label(for='inputPassword') Confirm password
+			input#passwordConfirm.form-control(type='password', placeholder='Confirm Password', autofocus='', name='passwordconfirm'
+			br
+			onblur='if ($("#password").val()!==$("#passwordConfirm").val()) { $("#passwordConfirm").css({\'background-color\': \'#f2dede\' }) } else { $("#passwordConfirm").css({\'background-color\':\'#fff\'}) } ')
+			br
+			label.sr-only(for='email') Email address
+			input#email.form-control(type='text', placeholder=`${session.email}`, autofocus='', name='email')
+			br
+			button.btn.btn-lg.btn-primary.btn-block(type='submit') Create project
+			br
+			if (error)
+				each message in error
+					+alert-warning(message)
+			if (success)
+				each message in success
+					+alert-warning(message)
+	
+

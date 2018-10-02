@@ -59,6 +59,10 @@ router.get('/all/:page', async (req, res, next) => {
 
 })
 
+router.get('/create', async (req, res, next) => {
+    res.render('createproject', { session: req.session })
+})
+
 router.post('/all/:page', async (req, res, next) => {
     // default is name, asc, all, all
     req.session.projectfilters = req.body
@@ -74,5 +78,6 @@ router.post('/search', async (req, res, next) => {
     req.session.searchparams = req.body.searchparams.trim().split(/\s+/)
     res.redirect('/project/search/1')
 })
+
 
 module.exports = router

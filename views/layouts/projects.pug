@@ -21,22 +21,23 @@ block body
 				button.btn.btn-primary(type='submit') Logout
 	.jumbotron
 		.container
-			h2 Projects
+			h2 Our Projects
 			p
-				| This is a template for a simple marketing or informational website. It includes a large callout called a jumbotron and three supporting pieces of content. Use it as a starting point to create something more unique.
-			
+				| Look at our projects. Or start one right here. It's that simple.
+			p
+				a.btn.btn-primary.btn-lg(href='/project/create', role='button') Start a new project »
 			form(method='POST')
-				h5 Order by
+				h4 Order by
 				+radio-inline("Name", "orderby", "1", "name")
 				+radio-inline("Funded amount", "orderby", "1", "fundedamt")
 				+radio-inline("Target amount", "orderby2", "1", "targetamt")
-				h5 Order
+				h4 Order
 				+radio-inline("Ascending", "order", "1", "asc")
 				+radio-inline("Descending", "order", "1", "desc")
-				h5 Status
+				h4 Status
 				+radio-inline("Funded", "status", "1", "true")
 				+radio-inline("Not funded", "status", "1", "false")
-				h5 Due date
+				h4 Due date
 				+radio-inline("Passed", "duepassed", "1", "true")
 				+radio-inline("Not passed", "duepassed", "1", "false")
 				br
