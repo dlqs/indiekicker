@@ -26,21 +26,21 @@ block body
 				| Welcome to your profile.
 		form(method='post')
 			h2.form-signin-heading Change profile information
-			label.sr-only(for='name') Name
+			label(for='name') Name
 			input#name.form-control(type='text', placeholder=`${session.name}`, autofocus='', name='name')
 			br
-			label.sr-only(for='username') Username
+			label(for='username') Username
 			input#username.form-control(type='text', placeholder=`${session.username}`, autofocus='', name='username')
 			br
-			label.sr-only(for='inputPassword') Password
+			label(for='inputPassword') Password
 			input#password.form-control(type='password', placeholder='New Password (at least 6 characters)', autofocus='', name='password')
 			br
-			label.sr-only(for='inputPassword') Confirm password
+			label(for='inputPassword') Confirm password
 			input#passwordConfirm.form-control(type='password', placeholder='Confirm Password', autofocus='', name='passwordconfirm'
 			br
 			onblur='if ($("#password").val()!==$("#passwordConfirm").val()) { $("#passwordConfirm").css({\'background-color\': \'#f2dede\' }) } else { $("#passwordConfirm").css({\'background-color\':\'#fff\'}) } ')
 			br
-			label.sr-only(for='email') Email address
+			label(for='email') Email address
 			input#email.form-control(type='text', placeholder=`${session.email}`, autofocus='', name='email')
 			br
 			button.btn.btn-lg.btn-primary.btn-block(type='submit') Confirm change
