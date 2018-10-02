@@ -5,7 +5,7 @@ body {
 
 .theme-dropdown .dropdown-menu {
   position: static;
-  display: block;
+  display: inline;
   margin-bottom: 20px;
 }
 

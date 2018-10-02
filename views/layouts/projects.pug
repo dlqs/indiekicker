@@ -1,0 +1,54 @@
+extends ../_bootstrap
+append styles
+	// Custom styles for this template
+	link(href='../../css/jumbotron.css', rel='stylesheet')
+block body
+	.container
+		+navbar-fixed('indiekicker', 'navbar')
+			li
+				a Hello, #{session.name}
+			+nav_item("/") Home
+			+nav_item("/project/all/1", "active") Projects
+			+nav_item("/category/all/1") Categories
+			+nav_item("/user/" + session.userid) My profile
+			form.navbar-form.navbar-nav
+				.form-group
+					input.form-control(type='text', placeholder='Search keyword')
+				button.btn.btn-success(type='submit') Search
+			form.navbar-form.navbar-right(method='post', action='/logout')
+				button.btn.btn-primary(type='submit') Logout
+	.jumbotron
+		.container
+			h2 Projects
+			p
+				| This is a template for a simple marketing or informational website. It includes a large callout called a jumbotron and three supporting pieces of content. Use it as a starting point to create something more unique.
+			
+			form(method='POST')
+				h5 Order by
+				+radio-inline("Name", "orderby", "1", "name")
+				+radio-inline("Funded amount", "orderby", "1", "fundedamt")
+				+radio-inline("Target amount", "orderby2", "1", "targetamt")
+				h5 Order
+				+radio-inline("Ascending", "order", "1", "asc")
+				+radio-inline("Descending", "order", "1", "desc")
+				h5 Status
+				+radio-inline("Funded", "status", "1", "true")
+				+radio-inline("Not funded", "status", "1", "false")
+				h5 Due date
+				+radio-inline("Passed", "duepassed", "1", "true")
+				+radio-inline("Not passed", "duepassed", "1", "false")
+				br
+				+submit("Filter")
+	.container
+		each project in projects
+			.col-md-4
+				h2 #{project.name}
+				img.img-circle(src='../../images/marketing'+project.imageid+'.jpg', alt='Generic placeholder image', width='60', height='60')
+				br
+				br
+				p #{ project.description }
+				p
+					a.btn.btn-default(href='/project/'+project.projectid, role='button') View details »
+		hr
+		footer
+	block content

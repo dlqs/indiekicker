@@ -8,11 +8,12 @@ block body
 			li
 				a Hello, #{session.name}
 			+nav_item("/") Home
-			+nav_item("/projects") All projects
+			+nav_item("/project/all/1") Projects
+			+nav_item("/category/all/1") Categories
 			+nav_item("/user/" + session.userid, "active") My profile
 			form.navbar-form.navbar-nav
 				.form-group
-					input.form-control(type='text', placeholder='Search projects')
+					input.form-control(type='text', placeholder='Search keyword')
 				button.btn.btn-success(type='submit') Search
 			form.navbar-form.navbar-right(method='post', action='/logout')
 				button.btn.btn-primary(type='submit') Logout

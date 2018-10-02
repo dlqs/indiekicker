@@ -55,7 +55,6 @@ router.post('/register', [
     check('username').isAlphanumeric().isLength({ min: 6 }),
     check('password').isLength({ min: 6}),
     check('email').isEmail(),
-    check('name').isAlpha(),
     ], async (req, res, next) => {
         errors = validationResult(req).array().map(obj => {
             return `<strong>Error:</strong> ${obj.param} has ${obj.msg.toLowerCase()}`
@@ -72,14 +71,14 @@ router.post('/register', [
         }
 
         // check username, email unique
-        const usernameResult = await db.query('SELECT * from users WHERE username=lower($1)', [req.body.username])
+        const usernameResult = await db.query('SELECT * from users WHERE username=$1', [req.body.username])
         if (usernameResult.rows.length > 0) errors.push('<strong>Error:</strong> username already taken')
-        const emailResult = await db.query('SELECT * from users WHERE email=lower($1)', [req.body.email])
+        const emailResult = await db.query('SELECT * from users WHERE email=$1', [req.body.email])
         if (emailResult.rows.length > 0) errors.push('<strong>Error:</strong> email already taken')
 
         try {
             const result = 
-                await db.query('INSERT INTO users VALUES (default, $1, lower($2), lower($3), md5($4)::uuid, false, now(), NULL, NULL )',
+                await db.query('INSERT INTO users VALUES (default, $1, $2, $3, md5($4)::uuid, false, now(), NULL, NULL )',
                 [req.body.name, req.body.username, req.body.email, req.body.password])
         } catch (error) {
             console.log(error)

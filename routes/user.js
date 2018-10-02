@@ -52,12 +52,9 @@ router.post('/:id', [
     ], async (req, res, next) => {
         let errors = []
         // express validator cannot compare with other fields in same body
-        if (req.body.name) {
-            req.checkBody('name').isAlpha()
-        }
         if (req.body.username) {
             req.checkBody('username').isAlphanumeric().isLength({ min: 6 })
-            const usernameResult = await db.query('SELECT * from users WHERE username=lower($1)', [req.body.username])
+            const usernameResult = await db.query('SELECT * from users WHERE username=$1', [req.body.username])
             if (usernameResult.rows.length > 0) errors.push('<strong>Error:</strong> username already taken')
         }
         if (req.body.password && req.body.password !== req.body.passwordconfirm) {
@@ -68,7 +65,7 @@ router.post('/:id', [
         }
         if (req.body.email) {
             req.checkBody('email').isEmail()
-            const emailResult = await db.query('SELECT * from users WHERE email=lower($1)', [req.body.email])
+            const emailResult = await db.query('SELECT * from users WHERE email=$1', [req.body.email])
             if (emailResult.rows.length > 0) errors.push('<strong>Error:</strong> email already taken')
         }
 
@@ -88,23 +85,25 @@ router.post('/:id', [
         try {
             if (req.body.name) {
                 await db.query('UPDATE users SET name=$1 WHERE userid=$2', [req.body.name, req.session.userid])
-                res.session.name = req.body.name
+                req.session.name = req.body.name
             }
             if (req.body.username) {
                 await db.query('UPDATE users SET username=$1 WHERE userid=$2', [req.body.username, req.session.userid])
-                res.session.username = req.body.username
+                req.session.username = req.body.username
             }
             if (req.body.password) {
                 await db.query('UPDATE users SET passworddigest=md5($1)::uuid WHERE userid=$2', [req.body.password, req.session.userid])
             }
             if (req.body.email) {
                 await db.query('UPDATE users SET email=$1 WHERE userid=$2', [req.body.email, req.session.userid])
-                res.session.email = req.body.email
+                req.session.email = req.body.email
             }
         } catch (error) {
+            console.log(error)
             return
         }
-        res.redirect('?updated=true')
+        res.render('user', { session: req.session, success: ['Updated successfully.'] })
+        return
 })
 
 // only admins go through this route.
