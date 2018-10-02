@@ -44,7 +44,6 @@ router.get('/all/:page', async (req, res, next) => {
                        FROM projects p ' +
                        'WHERE ' + where +
                        ' ORDER BY ' + orderby + ' ' + order
-        console.log(query)
         let { rows } = await db.query(query)
         res.render('projects', { session: req.session, projects: rows })
     } else {
@@ -67,7 +66,13 @@ router.post('/all/:page', async (req, res, next) => {
 })
 
 router.get('/:id', async (req, res, next) => {
+    
+})
 
+router.post('/search', async (req, res, next) => {
+    // default is name, asc, all, all
+    req.session.searchparams = req.body.searchparams.trim().split(/\s+/)
+    res.redirect('/project/search/1')
 })
 
 module.exports = router

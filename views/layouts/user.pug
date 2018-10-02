@@ -4,16 +4,18 @@ append styles
 	link(href='../css/starter-template.css', rel='stylesheet')
 block body
 	.container
-		+navbar-fixed('indiekicker', 'navbar')
+		+navbar-fixed('indiekicker', 'navbar', session.admin ? 'inverse': 'default')
 			li
 				a Hello, #{session.name}
 			+nav_item("/") Home
 			+nav_item("/project/all/1") Projects
 			+nav_item("/category/all/1") Categories
 			+nav_item("/user/" + session.userid, "active") My profile
-			form.navbar-form.navbar-nav
+			if session.admin === true
+				+nav_item("/user/all") All users
+			form.navbar-form.navbar-nav(method='post', action='/project/search')
 				.form-group
-					input.form-control(type='text', placeholder='Search keyword')
+					input.form-control(name='searchparams', type='text', placeholder='Search keyword')
 				button.btn.btn-success(type='submit') Search
 			form.navbar-form.navbar-right(method='post', action='/logout')
 				button.btn.btn-primary(type='submit') Logout

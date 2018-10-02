@@ -28,6 +28,7 @@ router.post('/', async (req, res, next) => {
             req.session.username = rows[0].username
             req.session.name = rows[0].name
             req.session.email = rows[0].email
+            req.session.admin = rows[0].admin
 
             // update last login time
             await db.query("UPDATE users SET lastlogin=now() WHERE userid=$1", [req.session.userid])
