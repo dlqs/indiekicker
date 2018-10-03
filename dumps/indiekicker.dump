@@ -15,6 +15,7 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE ONLY public.queries DROP CONSTRAINT queries_userid_fkey;
 ALTER TABLE ONLY public.projects DROP CONSTRAINT projects_owner_fkey;
 ALTER TABLE ONLY public.keywords DROP CONSTRAINT keywords_projectid_fkey;
 ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_userid_fkey;
@@ -22,10 +23,12 @@ ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_projectid_fkey;
 ALTER TABLE ONLY public.users DROP CONSTRAINT users_username_key;
 ALTER TABLE ONLY public.users DROP CONSTRAINT users_pkey;
 ALTER TABLE ONLY public.users DROP CONSTRAINT users_email_key;
+ALTER TABLE ONLY public.queries DROP CONSTRAINT queries_pkey;
 ALTER TABLE ONLY public.projects DROP CONSTRAINT projects_pkey;
 ALTER TABLE ONLY public.keywords DROP CONSTRAINT keywords_pkey;
 ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_userid_projectid_fkey;
 ALTER TABLE public.users ALTER COLUMN userid DROP DEFAULT;
+ALTER TABLE public.queries ALTER COLUMN userid DROP DEFAULT;
 ALTER TABLE public.projects ALTER COLUMN owner DROP DEFAULT;
 ALTER TABLE public.projects ALTER COLUMN projectid DROP DEFAULT;
 ALTER TABLE public.keywords ALTER COLUMN projectid DROP DEFAULT;
@@ -33,6 +36,8 @@ ALTER TABLE public.fundings ALTER COLUMN projectid DROP DEFAULT;
 ALTER TABLE public.fundings ALTER COLUMN userid DROP DEFAULT;
 DROP SEQUENCE public.users_userid_seq;
 DROP TABLE public.users;
+DROP SEQUENCE public.queries_userid_seq;
+DROP TABLE public.queries;
 DROP SEQUENCE public.projects_projectid_seq;
 DROP SEQUENCE public.projects_owner_seq;
 DROP TABLE public.projects;
@@ -272,6 +277,40 @@ ALTER SEQUENCE public.projects_projectid_seq OWNED BY public.projects.projectid;
 
 
 --
+-- Name: queries; Type: TABLE; Schema: public; Owner: indie
+--
+
+CREATE TABLE public.queries (
+    userid integer NOT NULL,
+    keyword character varying(32) NOT NULL
+);
+
+
+ALTER TABLE public.queries OWNER TO indie;
+
+--
+-- Name: queries_userid_seq; Type: SEQUENCE; Schema: public; Owner: indie
+--
+
+CREATE SEQUENCE public.queries_userid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.queries_userid_seq OWNER TO indie;
+
+--
+-- Name: queries_userid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: indie
+--
+
+ALTER SEQUENCE public.queries_userid_seq OWNED BY public.queries.userid;
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: indie
 --
 
@@ -350,6 +389,13 @@ ALTER TABLE ONLY public.projects ALTER COLUMN owner SET DEFAULT nextval('public.
 
 
 --
+-- Name: queries userid; Type: DEFAULT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.queries ALTER COLUMN userid SET DEFAULT nextval('public.queries_userid_seq'::regclass);
+
+
+--
 -- Name: users userid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
@@ -387,6 +433,14 @@ COPY public.projects (projectid, owner, name, description, category, amountsough
 4	4	wowowowow	what is this project about even what	technology	72322	2018-09-17	2018-09-17
 5	4	allowed	how can dis b	nonprofit	7232	2018-09-17	2018-09-17
 6	4	hello	asjdkadjsdas	nonprofit	9999	2018-10-03	2018-10-03
+\.
+
+
+--
+-- Data for Name: queries; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.queries (userid, keyword) FROM stdin;
 \.
 
 
@@ -446,6 +500,13 @@ SELECT pg_catalog.setval('public.projects_projectid_seq', 6, true);
 
 
 --
+-- Name: queries_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
+--
+
+SELECT pg_catalog.setval('public.queries_userid_seq', 1, false);
+
+
+--
 -- Name: users_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
 --
 
@@ -474,6 +535,14 @@ ALTER TABLE ONLY public.keywords
 
 ALTER TABLE ONLY public.projects
     ADD CONSTRAINT projects_pkey PRIMARY KEY (projectid);
+
+
+--
+-- Name: queries queries_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.queries
+    ADD CONSTRAINT queries_pkey PRIMARY KEY (userid, keyword);
 
 
 --
@@ -530,6 +599,14 @@ ALTER TABLE ONLY public.keywords
 
 ALTER TABLE ONLY public.projects
     ADD CONSTRAINT projects_owner_fkey FOREIGN KEY (owner) REFERENCES public.users(userid) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: queries queries_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.queries
+    ADD CONSTRAINT queries_userid_fkey FOREIGN KEY (userid) REFERENCES public.users(userid) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
