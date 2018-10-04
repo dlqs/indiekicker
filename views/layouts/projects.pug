@@ -45,13 +45,15 @@ block body
 	.container
 		each project in projects
 			.col-md-4
-				h2 #{project.name}
 				img.img-circle(src='../../images/marketing'+project.imageid+'.jpg', alt='Generic placeholder image', width='60', height='60')
+				h2 #{project.name}
 				br
-				br
-				p #{ project.description }
+				p #{ project.description.substring(0, 300) + '...' }
+				+progress-bar-striped(project.percentagefunded)
+				h4 Looking for a total of $#{ project.amountsought }
+				h4 Due #{ project.duedate.toString().substring(0, 15)}
 				p
-					a.btn.btn-default(href='/project/'+project.projectid, role='button') View details »
+					a.btn.btn-default(href='/project/'+project.projectid, role='button') Contribute! »
 		hr
 		footer
 	block content

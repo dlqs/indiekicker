@@ -22,7 +22,6 @@ router.get("/", async (req, res, next) => {
 
     // select top two sets of top 3 projects to display (MUST BE 3)
     // maybe consider almost funded?
-    console.log(req.session)
     let rowProjects = await db.query('SELECT * FROM projects LIMIT 3')
     let carouselProjects = await db.query('SELECT * FROM projects LIMIT 3')
 

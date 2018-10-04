@@ -47,7 +47,11 @@ router.get('/all/:page', async (req, res, next) => {
         let { rows } = await db.query(query)
         res.render('projects', { session: req.session, projects: rows })
     } else {
-        let { rows } = await db.query('SELECT p.* FROM projects p;')
+        let { rows } = 
+            await db.query('WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                            FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                            SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
+                            FROM totalfunding t ORDER BY t.name')
         rows = rows.map(proj => {
             return {
                 'imageid': 2,
