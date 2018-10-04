@@ -54,7 +54,7 @@ router.get('/all/:page', async (req, res, next) => {
                             FROM totalfunding t ORDER BY t.name')
         rows = rows.map(proj => {
             return {
-                'imageid': 2,
+                'imageid': proj.projectid % 3 + 1,
                 ...proj
             }
         })
@@ -74,7 +74,15 @@ router.post('/all/:page', async (req, res, next) => {
 })
 
 router.get('/:id', async (req, res, next) => {
-    
+    let { rows } = await db.query('WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                            FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                            SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
+                            FROM totalfunding t WHERE t.projectid=$1', [req.params.id])
+    if (rows.length == 1) {
+        res.render('project', { session: req.session, project: rows[0] })
+    } else {
+        res.status(404).send('Project not found')
+    }
 })
 
 router.post('/search', async (req, res, next) => {

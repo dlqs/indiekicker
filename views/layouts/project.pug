@@ -1,0 +1,42 @@
+extends ../_bootstrap
+append styles
+	// Custom styles for this template
+	link(href='../../css/jumbotron.css', rel='stylesheet')
+block body
+	.container
+		+navbar-fixed('indiekicker', 'navbar', session.admin ? 'inverse': 'default')
+			li
+				a Hello, #{session.name}
+			+nav_item("/") Home
+			+nav_item("/project/all/1", "active") Projects
+			+nav_item("/category/all/1") Categories
+			+nav_item("/user/" + session.userid) My profile
+			if session.admin === true
+				+nav_item("/user/all") All users
+			form.navbar-form.navbar-nav(method='post', action='/project/search')
+				.form-group
+					input.form-control(name='searchparams', type='text', placeholder='Search keyword')
+				button.btn.btn-success(type='submit') Search
+			form.navbar-form.navbar-right(method='post', action='/logout')
+				button.btn.btn-primary(type='submit') Logout
+	.jumbotron
+		.container
+			h2 Our Projects
+			p
+				| Look at our projects. Or start one right here. It's that simple.
+			p
+				a.btn.btn-primary.btn-lg(href='/project/create', role='button') Start a new project »
+	.container
+		.col-md-12
+			img.img-circle(src='../images/marketing'+((project.projectid%3)+1)+'.jpg', alt='Generic placeholder image', width='80', height='80')
+			h1 #{project.name}
+			h3 Started #{ project.startdate.toString().substring(0, 15)}
+			h3 Due #{ project.duedate.toString().substring(0, 15)}
+			br
+			p #{ project.description }
+			+progress-bar-striped(project.percentagefunded)
+			h4 Currently at $#{ project.amountfunded } / $#{ project.amountsought }
+			h3 <i>Help them reach their goal today!</i>
+		hr
+		footer
+	block content
