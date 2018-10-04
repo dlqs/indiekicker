@@ -43,6 +43,9 @@ block body
 						br
 						input.form-control(name='ccn', type='number', required='', placeholder='xxxxxx-xxxxxx-xxxx')
 					if fundings.funded === true
+						br
+						p
+							| <strong>Already funded! Not enough adrenaline?</strong>
 						p
 							| Update funded amount <i>(last funded: $#{ fundings.amount }, new amount must be more)</i>
 							br
@@ -55,11 +58,13 @@ block body
 				br
 				br
 				button.btn.btn-success.btn-lg(type='submit') Fund them now! »
-			if (error)
-				each message in error
-					+alert-warning(message)
-			if (success)
-				each message in success
-					+alert-warning(message)
+				if (error)
+					each message in error
+						p
+							+alert-warning(message)
+				if (success)
+					each message in success
+						p
+							+alert-success(message)
 	footer
 	block content

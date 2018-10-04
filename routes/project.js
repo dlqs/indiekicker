@@ -74,7 +74,35 @@ router.post('/all/:page', async (req, res, next) => {
 })
 
 router.post('/:id/fund', async (req, res, next) => {
-    // default is name, asc, all, all
+    // check if user already funded if so update, else insert
+    let { rows } = await db.query('WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                            FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                            SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
+                            FROM totalfunding t WHERE t.projectid=$1', [req.params.id])
+    let fundedRows = await db.query('SELECT * FROM fundings f WHERE f.userid=$1 and f.projectid=$2', [req.session.userid, req.params.id])
+
+    if (fundedRows.rows.length === 1) {
+        //funded
+        if (req.body.amount <= fundedRows.rows[0].amount) {
+            req.session.error = ['<strong>Error:</strong>New funding amount must be more!']
+        }
+    } else {
+        // not funded
+        if (req.body.amount + rows[0].amountfunded <= rows[0].amountsought) {
+            try {
+                const result = await db.query('INSERT INTO fundings VALUES ($1, $2, now(), $3)', [req.session.userid, req.params.id, req.body.amount])
+            } catch (error){
+                console.log(error)
+                req.session.error = ['<strong>Error:</strong> db error']
+            }
+            req.session.success = ['<strong>Success</strong> Thanks for supporting!']
+        } else {
+            // exceeds
+            req.session.error = ['<strong>Error:</strong>Funding amount exceeds maximum!']
+        }
+    }
+
+    res.redirect('/project/' + req.params.id)
 })
 
 router.get('/:id', async (req, res, next) => {
@@ -86,12 +114,17 @@ router.get('/:id', async (req, res, next) => {
     const fundings = {
         funded: false
     }
-    if (fundedRows.rows.length == 1) {
+    if (fundedRows.rows.length === 1) {
         fundings.funded = true
         fundings.amount = fundedRows.rows[0].amount
     }
-    if (rows.length == 1) {
-        res.render('project', { session: req.session, project: rows[0], fundings: fundings})
+    if (rows.length === 1) {
+        err = req.session.error
+        succ = req.session.success
+        // necessary to delete
+        delete req.session.error
+        delete req.session.success
+        res.render('project', { session: req.session, project: rows[0], fundings: fundings, error: err, success: succ })
     } else {
         res.status(404).send('Project not found')
     }
