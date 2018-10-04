@@ -39,13 +39,19 @@ block body
 			form.navbar-form.navbar-nav(method='post', action='/project/'+project.projectid+'/fund')
 				.form-group
 					p 
-						| Credit card number
+						| Credit card number (totally secure)
 						br
 						input.form-control(name='ccn', type='number', required='', placeholder='xxxxxx-xxxxxx-xxxx')
-					p
-						| Amount <i>(maximium: $#{ project.amountsought - project.amountfunded })</i>
-						br
-						input.form-control(name='amount', type='number', placeholder='$')
+					if fundings.funded === true
+						p
+							| Update funded amount <i>(last funded: $#{ fundings.amount }, new amount must be more)</i>
+							br
+							input.form-control(name='amount', type='number', placeholder='$'+fundings.amount)
+					else
+						p
+							| Amount <i>(maximium: $#{ project.amountsought - project.amountfunded })</i>
+							br
+							input.form-control(name='amount', type='number', placeholder='$')
 				br
 				br
 				button.btn.btn-success.btn-lg(type='submit') Fund them now! »

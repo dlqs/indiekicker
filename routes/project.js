@@ -73,13 +73,25 @@ router.post('/all/:page', async (req, res, next) => {
     res.redirect('/project/all/1')
 })
 
+router.post('/:id/fund', async (req, res, next) => {
+    // default is name, asc, all, all
+})
+
 router.get('/:id', async (req, res, next) => {
     let { rows } = await db.query('WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
                             FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
                             SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
                             FROM totalfunding t WHERE t.projectid=$1', [req.params.id])
+    let fundedRows = await db.query('SELECT * FROM fundings f WHERE f.userid=$1 and f.projectid=$2', [req.session.userid, req.params.id])
+    const fundings = {
+        funded: false
+    }
+    if (fundedRows.rows.length == 1) {
+        fundings.funded = true
+        fundings.amount = fundedRows.rows[0].amount
+    }
     if (rows.length == 1) {
-        res.render('project', { session: req.session, project: rows[0] })
+        res.render('project', { session: req.session, project: rows[0], fundings: fundings})
     } else {
         res.status(404).send('Project not found')
     }
