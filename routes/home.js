@@ -28,16 +28,16 @@ router.get("/", async (req, res, next) => {
 
     carouselProjects = carouselProjects.rows.map(proj => {
         return {
-            image: '../images/carousel1.jpg',
+            image: `../images/carousel${proj.projectid % 3 + 1}.jpg`,
             h1: proj.name,
-            p: proj.description,
+            p: proj.description.substring(0, 200) + '...',
             button:{caption: "Contribute today", url: "/project/"+proj.projectid}
         }
     })
     rowProjects = rowProjects.rows.map(proj => {
         return {
             heading: proj.name,
-            description: proj.description,
+            description: proj.description.substring(0, 300) + '...',
             id: proj.projectid
         }
     })
