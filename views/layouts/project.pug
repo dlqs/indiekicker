@@ -19,13 +19,7 @@ block body
 				button.btn.btn-success(type='submit') Search
 			form.navbar-form.navbar-right(method='post', action='/logout')
 				button.btn.btn-primary(type='submit') Logout
-	.jumbotron
-		.container
-			h2 Our Projects
-			p
-				| Look at our projects. Or start one right here. It's that simple.
-			p
-				a.btn.btn-primary.btn-lg(href='/project/create', role='button') Start a new project »
+	br
 	.container
 		.col-md-12
 			img.img-circle(src='../images/marketing'+((project.projectid%3)+1)+'.jpg', alt='Generic placeholder image', width='80', height='80')
@@ -38,5 +32,28 @@ block body
 			h4 Currently at $#{ project.amountfunded } / $#{ project.amountsought }
 			h3 <i>Help them reach their goal today!</i>
 		hr
-		footer
+	.jumbotron
+		.container
+			p
+				| YOU can help them reach their goal! Unless you're feeling selfish today...
+			form.navbar-form.navbar-nav(method='post', action='/project/'+project.projectid+'/fund')
+				.form-group
+					p 
+						| Credit card number
+						br
+						input.form-control(name='ccn', type='number', required='', placeholder='xxxxxx-xxxxxx-xxxx')
+					p
+						| Amount <i>(maximium: $#{ project.amountsought - project.amountfunded })</i>
+						br
+						input.form-control(name='amount', type='number', placeholder='$')
+				br
+				br
+				button.btn.btn-success.btn-lg(type='submit') Fund them now! »
+			if (error)
+				each message in error
+					+alert-warning(message)
+			if (success)
+				each message in success
+					+alert-warning(message)
+	footer
 	block content
