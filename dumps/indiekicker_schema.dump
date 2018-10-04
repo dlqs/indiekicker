@@ -1,0 +1,639 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 10.4
+-- Dumped by pg_dump version 10.4
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
+ALTER TABLE ONLY public.queries DROP CONSTRAINT queries_userid_fkey;
+ALTER TABLE ONLY public.projects DROP CONSTRAINT projects_owner_fkey;
+ALTER TABLE ONLY public.keywords DROP CONSTRAINT keywords_projectid_fkey;
+ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_userid_fkey;
+ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_projectid_fkey;
+ALTER TABLE ONLY public.users DROP CONSTRAINT users_username_key;
+ALTER TABLE ONLY public.users DROP CONSTRAINT users_pkey;
+ALTER TABLE ONLY public.users DROP CONSTRAINT users_email_key;
+ALTER TABLE ONLY public.queries DROP CONSTRAINT queries_pkey;
+ALTER TABLE ONLY public.projects DROP CONSTRAINT projects_pkey;
+ALTER TABLE ONLY public.keywords DROP CONSTRAINT keywords_pkey;
+ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_pkey;
+ALTER TABLE public.users ALTER COLUMN userid DROP DEFAULT;
+ALTER TABLE public.queries ALTER COLUMN userid DROP DEFAULT;
+ALTER TABLE public.projects ALTER COLUMN owner DROP DEFAULT;
+ALTER TABLE public.projects ALTER COLUMN projectid DROP DEFAULT;
+ALTER TABLE public.keywords ALTER COLUMN projectid DROP DEFAULT;
+ALTER TABLE public.fundings ALTER COLUMN projectid DROP DEFAULT;
+ALTER TABLE public.fundings ALTER COLUMN userid DROP DEFAULT;
+DROP SEQUENCE public.users_userid_seq;
+DROP TABLE public.users;
+DROP SEQUENCE public.queries_userid_seq;
+DROP TABLE public.queries;
+DROP SEQUENCE public.projects_projectid_seq;
+DROP SEQUENCE public.projects_owner_seq;
+DROP TABLE public.projects;
+DROP SEQUENCE public.keywords_projectid_seq;
+DROP TABLE public.keywords;
+DROP SEQUENCE public.fundings_userid_seq;
+DROP SEQUENCE public.fundings_projectid_seq;
+DROP TABLE public.fundings;
+DROP FUNCTION public.check_total_funded(project_id integer);
+DROP FUNCTION public.check_funding_sum(user_id integer, project_id integer, amount numeric);
+DROP FUNCTION public.check_amount_sought(project_id integer, amountsought numeric);
+DROP EXTENSION citext;
+DROP EXTENSION plpgsql;
+DROP SCHEMA public;
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
+--
+
+CREATE SCHEMA public;
+
+
+ALTER SCHEMA public OWNER TO postgres;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- Name: citext; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION citext; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION citext IS 'data type for case-insensitive character strings';
+
+
+--
+-- Name: check_amount_sought(integer, numeric); Type: FUNCTION; Schema: public; Owner: indie
+--
+
+CREATE FUNCTION public.check_amount_sought(project_id integer, amountsought numeric) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE passed BOOLEAN;
+BEGIN
+   SELECT ($2 >= COALESCE((SELECT SUM(f.amount) FROM fundings f WHERE f.projectid = $1), 0)) INTO passed;
+
+   RETURN passed;
+END;
+$_$;
+
+
+ALTER FUNCTION public.check_amount_sought(project_id integer, amountsought numeric) OWNER TO indie;
+
+--
+-- Name: check_funding_sum(integer, integer, numeric); Type: FUNCTION; Schema: public; Owner: indie
+--
+
+CREATE FUNCTION public.check_funding_sum(user_id integer, project_id integer, amount numeric) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE passed BOOLEAN;
+BEGIN
+   SELECT (p.amountsought >= COALESCE((SELECT SUM(f.amount) FROM fundings f WHERE f.userid <> $1 AND f.projectid = $2), 0) + $3) INTO passed FROM projects p
+   WHERE p.projectid = $2;
+
+   RETURN passed;
+END;
+$_$;
+
+
+ALTER FUNCTION public.check_funding_sum(user_id integer, project_id integer, amount numeric) OWNER TO indie;
+
+--
+-- Name: check_total_funded(integer); Type: FUNCTION; Schema: public; Owner: indie
+--
+
+CREATE FUNCTION public.check_total_funded(project_id integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE passed BOOLEAN;
+BEGIN
+   SELECT (p.amountsought >= COALESCE((SELECT SUM(f.amount) FROM fundings f WHERE f.projectid = $1), 0)) INTO passed FROM projects p
+   WHERE p.projectid = $1;
+
+   RETURN passed;
+END;
+$_$;
+
+
+ALTER FUNCTION public.check_total_funded(project_id integer) OWNER TO indie;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: fundings; Type: TABLE; Schema: public; Owner: indie
+--
+
+CREATE TABLE public.fundings (
+    userid integer NOT NULL,
+    projectid integer NOT NULL,
+    "time" timestamp without time zone NOT NULL,
+    amount numeric NOT NULL,
+    CONSTRAINT amount CHECK ((amount > (0)::numeric)),
+    CONSTRAINT check_funding_sum CHECK (public.check_funding_sum(userid, projectid, amount))
+);
+
+
+ALTER TABLE public.fundings OWNER TO indie;
+
+--
+-- Name: fundings_projectid_seq; Type: SEQUENCE; Schema: public; Owner: indie
+--
+
+CREATE SEQUENCE public.fundings_projectid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fundings_projectid_seq OWNER TO indie;
+
+--
+-- Name: fundings_projectid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: indie
+--
+
+ALTER SEQUENCE public.fundings_projectid_seq OWNED BY public.fundings.projectid;
+
+
+--
+-- Name: fundings_userid_seq; Type: SEQUENCE; Schema: public; Owner: indie
+--
+
+CREATE SEQUENCE public.fundings_userid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.fundings_userid_seq OWNER TO indie;
+
+--
+-- Name: fundings_userid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: indie
+--
+
+ALTER SEQUENCE public.fundings_userid_seq OWNED BY public.fundings.userid;
+
+
+--
+-- Name: keywords; Type: TABLE; Schema: public; Owner: indie
+--
+
+CREATE TABLE public.keywords (
+    projectid integer NOT NULL,
+    keyword character varying(32) NOT NULL
+);
+
+
+ALTER TABLE public.keywords OWNER TO indie;
+
+--
+-- Name: keywords_projectid_seq; Type: SEQUENCE; Schema: public; Owner: indie
+--
+
+CREATE SEQUENCE public.keywords_projectid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.keywords_projectid_seq OWNER TO indie;
+
+--
+-- Name: keywords_projectid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: indie
+--
+
+ALTER SEQUENCE public.keywords_projectid_seq OWNED BY public.keywords.projectid;
+
+
+--
+-- Name: projects; Type: TABLE; Schema: public; Owner: indie
+--
+
+CREATE TABLE public.projects (
+    projectid integer NOT NULL,
+    owner integer NOT NULL,
+    name character varying(160) NOT NULL,
+    description text,
+    amountsought numeric NOT NULL,
+    startdate date NOT NULL,
+    duedate date NOT NULL,
+    category public.citext,
+    CONSTRAINT afterstart CHECK ((duedate >= startdate)),
+    CONSTRAINT check_amount_sought CHECK (public.check_amount_sought(projectid, amountsought)),
+    CONSTRAINT nonnegative CHECK ((amountsought > (0)::numeric))
+);
+
+
+ALTER TABLE public.projects OWNER TO indie;
+
+--
+-- Name: projects_owner_seq; Type: SEQUENCE; Schema: public; Owner: indie
+--
+
+CREATE SEQUENCE public.projects_owner_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.projects_owner_seq OWNER TO indie;
+
+--
+-- Name: projects_owner_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: indie
+--
+
+ALTER SEQUENCE public.projects_owner_seq OWNED BY public.projects.owner;
+
+
+--
+-- Name: projects_projectid_seq; Type: SEQUENCE; Schema: public; Owner: indie
+--
+
+CREATE SEQUENCE public.projects_projectid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.projects_projectid_seq OWNER TO indie;
+
+--
+-- Name: projects_projectid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: indie
+--
+
+ALTER SEQUENCE public.projects_projectid_seq OWNED BY public.projects.projectid;
+
+
+--
+-- Name: queries; Type: TABLE; Schema: public; Owner: indie
+--
+
+CREATE TABLE public.queries (
+    userid integer NOT NULL,
+    keyword public.citext NOT NULL
+);
+
+
+ALTER TABLE public.queries OWNER TO indie;
+
+--
+-- Name: queries_userid_seq; Type: SEQUENCE; Schema: public; Owner: indie
+--
+
+CREATE SEQUENCE public.queries_userid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.queries_userid_seq OWNER TO indie;
+
+--
+-- Name: queries_userid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: indie
+--
+
+ALTER SEQUENCE public.queries_userid_seq OWNED BY public.queries.userid;
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: indie
+--
+
+CREATE TABLE public.users (
+    userid integer NOT NULL,
+    name character varying(160) NOT NULL,
+    username public.citext NOT NULL,
+    email public.citext NOT NULL,
+    passworddigest uuid NOT NULL,
+    admin boolean NOT NULL,
+    createdon timestamp without time zone NOT NULL,
+    lastlogin timestamp without time zone,
+    sessionid bytea,
+    CONSTRAINT email_max_len CHECK ((length((email)::text) <= 160)),
+    CONSTRAINT username_max_len CHECK ((length((username)::text) <= 32))
+);
+
+
+ALTER TABLE public.users OWNER TO indie;
+
+--
+-- Name: users_userid_seq; Type: SEQUENCE; Schema: public; Owner: indie
+--
+
+CREATE SEQUENCE public.users_userid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.users_userid_seq OWNER TO indie;
+
+--
+-- Name: users_userid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: indie
+--
+
+ALTER SEQUENCE public.users_userid_seq OWNED BY public.users.userid;
+
+
+--
+-- Name: fundings userid; Type: DEFAULT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.fundings ALTER COLUMN userid SET DEFAULT nextval('public.fundings_userid_seq'::regclass);
+
+
+--
+-- Name: fundings projectid; Type: DEFAULT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.fundings ALTER COLUMN projectid SET DEFAULT nextval('public.fundings_projectid_seq'::regclass);
+
+
+--
+-- Name: keywords projectid; Type: DEFAULT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.keywords ALTER COLUMN projectid SET DEFAULT nextval('public.keywords_projectid_seq'::regclass);
+
+
+--
+-- Name: projects projectid; Type: DEFAULT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.projects ALTER COLUMN projectid SET DEFAULT nextval('public.projects_projectid_seq'::regclass);
+
+
+--
+-- Name: projects owner; Type: DEFAULT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.projects ALTER COLUMN owner SET DEFAULT nextval('public.projects_owner_seq'::regclass);
+
+
+--
+-- Name: queries userid; Type: DEFAULT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.queries ALTER COLUMN userid SET DEFAULT nextval('public.queries_userid_seq'::regclass);
+
+
+--
+-- Name: users userid; Type: DEFAULT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.users ALTER COLUMN userid SET DEFAULT nextval('public.users_userid_seq'::regclass);
+
+
+--
+-- Data for Name: fundings; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.fundings (userid, projectid, "time", amount) FROM stdin;
+\.
+
+
+--
+-- Data for Name: keywords; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.keywords (projectid, keyword) FROM stdin;
+\.
+
+
+--
+-- Data for Name: projects; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.projects (projectid, owner, name, description, amountsought, startdate, duedate, category) FROM stdin;
+\.
+
+
+--
+-- Data for Name: queries; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.queries (userid, keyword) FROM stdin;
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.users (userid, name, username, email, passworddigest, admin, createdon, lastlogin, sessionid) FROM stdin;
+\.
+
+
+--
+-- Name: fundings_projectid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
+--
+
+SELECT pg_catalog.setval('public.fundings_projectid_seq', 1, false);
+
+
+--
+-- Name: fundings_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
+--
+
+SELECT pg_catalog.setval('public.fundings_userid_seq', 1, false);
+
+
+--
+-- Name: keywords_projectid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
+--
+
+SELECT pg_catalog.setval('public.keywords_projectid_seq', 1, false);
+
+
+--
+-- Name: projects_owner_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
+--
+
+SELECT pg_catalog.setval('public.projects_owner_seq', 1, false);
+
+
+--
+-- Name: projects_projectid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
+--
+
+SELECT pg_catalog.setval('public.projects_projectid_seq', 1, false);
+
+
+--
+-- Name: queries_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
+--
+
+SELECT pg_catalog.setval('public.queries_userid_seq', 1, false);
+
+
+--
+-- Name: users_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
+--
+
+SELECT pg_catalog.setval('public.users_userid_seq', 1, false);
+
+
+--
+-- Name: fundings fundings_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.fundings
+    ADD CONSTRAINT fundings_pkey PRIMARY KEY (userid, projectid);
+
+
+--
+-- Name: keywords keywords_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.keywords
+    ADD CONSTRAINT keywords_pkey PRIMARY KEY (projectid, keyword);
+
+
+--
+-- Name: projects projects_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT projects_pkey PRIMARY KEY (projectid);
+
+
+--
+-- Name: queries queries_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.queries
+    ADD CONSTRAINT queries_pkey PRIMARY KEY (userid, keyword);
+
+
+--
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_key UNIQUE (email);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (userid);
+
+
+--
+-- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_username_key UNIQUE (username);
+
+
+--
+-- Name: fundings fundings_projectid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.fundings
+    ADD CONSTRAINT fundings_projectid_fkey FOREIGN KEY (projectid) REFERENCES public.projects(projectid) ON UPDATE CASCADE;
+
+
+--
+-- Name: fundings fundings_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.fundings
+    ADD CONSTRAINT fundings_userid_fkey FOREIGN KEY (userid) REFERENCES public.users(userid) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: keywords keywords_projectid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.keywords
+    ADD CONSTRAINT keywords_projectid_fkey FOREIGN KEY (projectid) REFERENCES public.projects(projectid) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: projects projects_owner_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.projects
+    ADD CONSTRAINT projects_owner_fkey FOREIGN KEY (owner) REFERENCES public.users(userid) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: queries queries_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+--
+
+ALTER TABLE ONLY public.queries
+    ADD CONSTRAINT queries_userid_fkey FOREIGN KEY (userid) REFERENCES public.users(userid) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
+--
+
+GRANT ALL ON SCHEMA public TO PUBLIC;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
