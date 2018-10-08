@@ -33,6 +33,7 @@ block body
 				a.btn.btn-default(href='/project/'+project.projectid, role='button') <strong>#{project.name}</strong> »
 		h4
 			| <strong>$#{fundingGathered}</strong> total gathered fundings from all my projects
+		hr
 		h2 Projects I've funded
 		if (funded.length === 0)
 			p None
@@ -42,6 +43,7 @@ block body
 				a.btn.btn-default(href='/project/'+funding.projectid, role='button') <strong>#{funding.name}</strong> »
 		h4
 			| <strong>$#{fundedAmount}</strong> total funded to other projects
+		hr
 		form(method='post')
 			h2.form-signin-heading Change profile information
 			label(for='name') Name

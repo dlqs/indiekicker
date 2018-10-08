@@ -49,9 +49,23 @@ router.get('/all/:page', async (req, res, next) => {
                    FROM totalfunding t ' +
                    'WHERE ' + where +
                    ' ORDER BY ' + orderby + ' ' + order
-    console.log(query)
-    let { rows } = await db.query(query)
 
+    if (queries.length > 0) {
+        // delete
+        await db.query('DELETE * FROM queries q WHERE q.userid=$1', [req.params.userid])
+        //insert
+        queries.forEach(async (param) => {
+            await db.query('INSERT INTO queries VALUES ($1, $2)', [req.session.userid, param])
+        })
+        const query = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                       FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                       SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
+                       FROM totalfunding t, queries q, keywords k \
+                       WHERE q.userid='+req.session.userid+', t.projectid=k.projectid, k.keyword::citext=q.keyword \
+                       GROUP BY t.projectid'
+    }
+
+    let { rows } = await db.query(query)
     // images
     rows = rows.map(proj => {
         return {
@@ -78,7 +92,6 @@ router.get('/create', async (req, res, next) => {
             return '<strong>Error:</strong>'
         }
     })
-    console.log(error)
     success = success.map(succ => {
         if (succ === 'created') {
             return '<strong>Success!</strong> You have started a project.'
@@ -179,6 +192,7 @@ router.get('/:id', async (req, res, next) => {
         fundings.funded = true
         fundings.amount = fundedRows.rows[0].amount
     }
+    const fullyfunded = rows[0].percentagefunded >= 100
     if (rows.length === 1) {
         err = req.session.error
         succ = req.session.success
@@ -191,7 +205,8 @@ router.get('/:id', async (req, res, next) => {
                 fundings: fundings, 
                 error: err, 
                 success: succ, 
-                passed: passed 
+                passed: passed,
+                fullyfunded:fullyfunded
             })
     } else {
         res.status(404).send('Project not found')

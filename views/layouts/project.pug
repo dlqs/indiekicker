@@ -28,7 +28,10 @@ block body
 			h3 Due #{ project.duedate.toString().substring(0, 15)}
 			br
 			p Description: #{ project.description }
-			+progress-bar-striped(project.percentagefunded)
+			if fullyfunded === true
+				+progress-bar-info(project.percentagefunded)
+			else
+				+progress-bar-striped(project.percentagefunded)
 			h4 Currently at $#{ project.amountfunded } / $#{ project.amountsought }
 			h3 <i>Help them reach their goal today!</i>
 		hr
@@ -36,6 +39,8 @@ block body
 		.container
 			if passed === true
 				p This project is over! Thanks for all your support.
+			else if fullyfunded === true
+				h2 Project is fully funded! (No refunds, remember?)
 			else
 				p
 					| YOU can help them reach their goal! Unless you're feeling selfish today...
