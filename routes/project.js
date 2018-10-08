@@ -63,8 +63,67 @@ router.get('/all/:page', async (req, res, next) => {
 
 })
 
+const arrayWrapper = (obj) => {
+    if (Array.isArray(obj)) {
+        return obj
+    } else if (obj === undefined || obj === null) {
+        return []
+    } else {
+        return [obj]
+    }
+}
+
 router.get('/create', async (req, res, next) => {
-    res.render('createproject', { session: req.session })
+    // create project
+    // get categories
+    let error = arrayWrapper(req.query.error)
+    let success = arrayWrapper(req.query.success)
+    error = error.map(err => {
+        if (err === 'amountsought') {
+            return '<strong>Error:</strong> Amount sought must be positive'
+        } else if (err === 'duedate') {
+            return '<strong>Error:</strong> Due date must be after today'
+        } else {
+            return '<strong>Error:</strong>'
+        }
+    })
+    console.log(error)
+    success = success.map(succ => {
+        if (succ === 'created') {
+            return '<strong>Success!</strong> You have started a project.'
+        }
+    })
+    let { rows } = await db.query('SELECT distinct p.category from projects p;')
+    rows = rows.map(row => {
+        if (row.category === null) {
+            return 'others'
+        } else {
+            return row.category
+        }
+    })
+    res.render('createproject', { session: req.session, categories: rows, error: error, success: success})
+})
+
+router.post('/create', async (req, res, next) => {
+    let errors = []
+    amountsought = parseInt(req.body.amountsought)
+    if (amountsought <= 0) {
+        errors.push('amountsought')
+    }
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (new Date(req.body.duedate) < today) {
+        errors.push('duedate')
+    }
+
+    errors = errors.map(err => 'error=' + err).join('&')
+    if (errors) {
+        res.redirect('/project/create?' + errors)
+    } else {
+        await db.query('INSERT INTO projects VALUES (default, $1, $2, $3, $4, now(), $5, $6)', 
+            [req.session.userid, req.body.name, req.body.description, amountsought, req.body.duedate, req.body.category])
+        res.redirect('/project/create?success=created')
+    }
 })
 
 router.post('/all/:page', async (req, res, next) => {
@@ -84,7 +143,7 @@ router.post('/:id/fund', async (req, res, next) => {
     if (fundedRows.rows.length === 1) {
         //funded
         if (req.body.amount <= fundedRows.rows[0].amount) {
-            req.session.error = ['<strong>Error:</strong>New funding amount must be more!']
+            req.session.error = ['<strong>Error:</strong> New funding amount must be more!']
         }
     } else {
         // not funded
@@ -93,12 +152,12 @@ router.post('/:id/fund', async (req, res, next) => {
                 const result = await db.query('INSERT INTO fundings VALUES ($1, $2, now(), $3)', [req.session.userid, req.params.id, req.body.amount])
             } catch (error){
                 console.log(error)
-                req.session.error = ['<strong>Error:</strong> db error']
+                req.session.error = ['<strong>Error:</strong> DB error']
             }
             req.session.success = ['<strong>Success</strong> Thanks for supporting!']
         } else {
             // exceeds
-            req.session.error = ['<strong>Error:</strong>Funding amount exceeds maximum!']
+            req.session.error = ['<strong>Error:</strong> Funding amount exceeds maximum!']
         }
     }
 

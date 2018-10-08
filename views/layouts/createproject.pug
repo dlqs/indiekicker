@@ -28,22 +28,26 @@ block body
 				| Create your project today.
 		form(method='post')
 			h2.form-signin-heading Create project
-			label(for='name') Name
-			input#name.form-control(type='text', placeholder=`${session.name}`, autofocus='', name='name')
+			label(for='name') Project Name
+			input#name.form-control(type='text', placeholder=`My First Indiekicking`, required='', autofocus='', name='name')
 			br
-			label(for='username') Username
-			input#username.form-control(type='text', placeholder=`${session.username}`, autofocus='', name='username')
+			label(for='description') Project Description
+			input#username.form-control(type='text', placeholder=`Lorum Ipsum`, required='', autofocus='', name='description')
 			br
-			label(for='inputPassword') Password
-			input#password.form-control(type='password', placeholder='New Password (at least 6 characters)', autofocus='', name='password')
+			label(for='amountsought') Amount Sought
+			input#email.form-control(type='number', placeholder=`$100`, required='', autofocus='', name='amountsought')
 			br
-			label(for='inputPassword') Confirm password
-			input#passwordConfirm.form-control(type='password', placeholder='Confirm Password', autofocus='', name='passwordconfirm'
+			label(for='duedate') Due Date
+			input.form-control(type='date', autofocus='', required='', name='duedate')
 			br
-			onblur='if ($("#password").val()!==$("#passwordConfirm").val()) { $("#passwordConfirm").css({\'background-color\': \'#f2dede\' }) } else { $("#passwordConfirm").css({\'background-color\':\'#fff\'}) } ')
+			label(for='keywords') Keywords (seperate with space)
+			input.form-control(type='text', placeholder=`tech accessories iphone android`, autofocus='', name='keywords')
 			br
-			label.sr-only(for='email') Email address
-			input#email.form-control(type='text', placeholder=`${session.email}`, autofocus='', name='email')
+			p <strong>Category</strong>
+			select(name='category')
+				each category in categories
+					option(value=category) #{category}
+			br
 			br
 			button.btn.btn-lg.btn-primary.btn-block(type='submit') Create project
 			br
@@ -52,6 +56,6 @@ block body
 					+alert-warning(message)
 			if (success)
 				each message in success
-					+alert-warning(message)
+					+alert-success(message)
 	
 
