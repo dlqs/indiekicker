@@ -39,6 +39,20 @@ const isTheUser = async (req, res, next) => {
     }
 }
 
+// only admins go through this route.
+router.get('/all', async (req, res, next) => {
+    const adminRows = await db.query("SELECT * FROM users WHERE userid=$1 AND sessionid=$2::bytea AND (EXTRACT(EPOCH FROM NOW()::timestamp) - EXTRACT(EPOCH FROM lastlogin) < $3) AND admin=TRUE",
+                                    [req.session.userid, req.session.id, TTL])
+    if (adminRows.rows.length !== 1) {
+        res.redirect('/user/' + req.session.userid)
+        return
+    }
+
+    res.render('allusers', {
+        session: req.session
+    })
+})
+
 // normal users go through this route.
 router.use('/:id', isTheUser)
 
@@ -140,18 +154,6 @@ router.post('/:id', [
         return
 })
 
-// only admins go through this route.
-router.get('/all', async (req, res, next) => {
-    const adminRows = await db.query("SELECT * FROM users WHERE userid=$1 AND sessionid=$2::bytea AND (EXTRACT(EPOCH FROM NOW()::timestamp) - EXTRACT(EPOCH FROM lastlogin) < $3) AND admin=TRUE",
-                                    [req.session.userid, req.session.id, TTL])
-    if (adminRows.rows.length !== 1) {
-        res.redirect('/user/' + req.session.userid)
-        return
-    }
 
-    res.render('user', {
-        session: req.session
-    })
-})
 
 module.exports = router
