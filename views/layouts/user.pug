@@ -21,16 +21,22 @@ block body
 				button.btn.btn-primary(type='submit') Logout
 	.container
 		.starter-template
-			h1 Hello, #{session.name}.
+			h1 Hello, #{user.name}.
 			p.lead
 				| Welcome to your profile.
+		
+		h2 My projects
+		if (projects.length === 0)
+			p None
+		each project in projects
+			a.btn.btn-info(href='/project/'+project.projectid, role='button') Visit »
 		form(method='post')
 			h2.form-signin-heading Change profile information
 			label(for='name') Name
-			input#name.form-control(type='text', placeholder=`${session.name}`, autofocus='', name='name')
+			input#name.form-control(type='text', placeholder=`${user.name}`, autofocus='', name='name')
 			br
 			label(for='username') Username
-			input#username.form-control(type='text', placeholder=`${session.username}`, autofocus='', name='username')
+			input#username.form-control(type='text', placeholder=`${user.username}`, autofocus='', name='username')
 			br
 			label(for='inputPassword') Password
 			input#password.form-control(type='password', placeholder='New Password (at least 6 characters)', autofocus='', name='password')
@@ -41,7 +47,7 @@ block body
 			onblur='if ($("#password").val()!==$("#passwordConfirm").val()) { $("#passwordConfirm").css({\'background-color\': \'#f2dede\' }) } else { $("#passwordConfirm").css({\'background-color\':\'#fff\'}) } ')
 			br
 			label(for='email') Email address
-			input#email.form-control(type='text', placeholder=`${session.email}`, autofocus='', name='email')
+			input#email.form-control(type='text', placeholder=`${user.email}`, autofocus='', name='email')
 			br
 			button.btn.btn-lg.btn-primary.btn-block(type='submit') Confirm change
 			br
@@ -50,6 +56,5 @@ block body
 					+alert-warning(message)
 			if (success)
 				each message in success
-					+alert-warning(message)
+					+alert-success(message)
 	
-

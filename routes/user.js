@@ -42,9 +42,19 @@ const isTheUser = async (req, res, next) => {
 // normal users go through this route.
 router.use('/:id', isTheUser)
 
-router.get('/:id', (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
+    const userRows = await db.query('SELECT * FROM USERS u where u.userid=$1', [req.params.id])
+    const projectRows = await db.query('SELECT * FROM projects p where p.owner=$1', [req.params.id])
+    const projects = projectRows.rows
+    const user = {
+        username: userRows.rows[0].username,
+        name: userRows.rows[0].name,
+        email: userRows.rows[0].email,
+    }
     res.render('user', {
-        session: req.session
+        session: req.session,
+        user: user,
+        projects: projects
     })
 })
 
@@ -84,25 +94,46 @@ router.post('/:id', [
         // update session
         try {
             if (req.body.name) {
-                await db.query('UPDATE users SET name=$1 WHERE userid=$2', [req.body.name, req.session.userid])
-                req.session.name = req.body.name
+                await db.query('UPDATE users SET name=$1 WHERE userid=$2', [req.body.name, req.params.id])
+                if (req.session.userid === parseInt(req.params.id)) {
+                    req.session.name = req.body.name
+                }
             }
             if (req.body.username) {
-                await db.query('UPDATE users SET username=$1 WHERE userid=$2', [req.body.username, req.session.userid])
-                req.session.username = req.body.username
+                await db.query('UPDATE users SET username=$1 WHERE userid=$2', [req.body.username, req.params.id])
+                if (req.session.userid === parseInt(req.params.id)) {
+                    req.session.username = req.body.username
+                }
             }
             if (req.body.password) {
-                await db.query('UPDATE users SET passworddigest=md5($1)::uuid WHERE userid=$2', [req.body.password, req.session.userid])
+                await db.query('UPDATE users SET passworddigest=md5($1)::uuid WHERE userid=$2', [req.body.password, req.params.id])
             }
             if (req.body.email) {
-                await db.query('UPDATE users SET email=$1 WHERE userid=$2', [req.body.email, req.session.userid])
-                req.session.email = req.body.email
+                await db.query('UPDATE users SET email=$1 WHERE userid=$2', [req.body.email, req.params.id])
+                if (req.session.userid === parseInt(req.params.id)) {
+                    req.session.email = req.body.email
+                }
             }
         } catch (error) {
             console.log(error)
             return
         }
-        res.render('user', { session: req.session, success: ['Updated successfully.'] })
+        const userRows = await db.query('SELECT * FROM USERS u where u.userid=$1', [req.params.id])
+        const projectRows = await db.query('SELECT * FROM projects p where p.owner=$1', [req.params.id])
+        const projects = projectRows.rows
+        const user = {
+            username: userRows.rows[0].username,
+            name: userRows.rows[0].name,
+            email: userRows.rows[0].email,
+        }
+        res.render('user', 
+        { 
+            session: req.session, 
+            success: ['Updated successfully.'],
+            user: user,
+            projects: projects
+
+        })
         return
 })
 
