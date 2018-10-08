@@ -29,7 +29,9 @@ block body
 		if (projects.length === 0)
 			p None
 		each project in projects
-			a.btn.btn-info(href='/project/'+project.projectid, role='button') Visit »
+			h4
+				| Project: <strong>#{project.name}</strong>         
+				a.btn.btn-info(href='/project/'+project.projectid, role='button') Visit »
 		form(method='post')
 			h2.form-signin-heading Change profile information
 			label(for='name') Name

@@ -3,8 +3,59 @@ const router = new Router()
 
 const db = require('../db')
 
+const arrayWrapper = (obj) => {
+    if (Array.isArray(obj)) {
+        return obj
+    } else if (obj === undefined || obj === null) {
+        return []
+    } else {
+        return [obj]
+    }
+}
+
 router.get('/all/:page', async (req, res, next) => {
+    let queries = arrayWrapper(req.query.query)
+    let orderby = req.query.orderby === undefined ? 'name': req.query.orderby
+    let order = req.query.order === undefined ? 'ASC': req.query.order
+    let status = req.query.status === undefined ? null : req.query.status
+    let duedate = req.query.duedate === undefined ? null : req.query.duedate
+
+
+    const wcond = []
+    if (status !== null) {
+        if (status === 'funded') {
+            wcond.push('t.amountfunded >= t.amountsought')
+        } else {
+            wcond.push('t.amountfunded < t.amountsought')
+        }
+    }
+    if (duedate !== null) {
+        if (duedate === 'passed') {
+            wcond.push('now() > t.duedate')
+        } else {
+            wcond.push('now() <= t.duedate')
+        }
+    }
+    const where = wcond.length !== 0 ? (wcond.length === 1 ? wcond[0] : wcond.join(' AND ')) : 'TRUE'
+
+    const query = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                   FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                   SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
+                   FROM totalfunding t ' +
+                   'WHERE ' + where +
+                   ' ORDER BY ' + orderby + ' ' + order
+    let { rows } = await db.query(query)
+
+    // images
+    rows = rows.map(proj => {
+        return {
+            'imageid': proj.projectid % 3 + 1,
+            ...proj
+        }
+    })
+    res.render('projects', { session: req.session, projects: rows })
     // name, description, projectid, imageid
+    /**
     if ('projectfilters' in req.session) {
         const wcond = ['now() > p.duedate', 'p.amountfunded >= p.amountsought']
         if ('orderby' in req.session.projectfilters) {
@@ -60,18 +111,9 @@ router.get('/all/:page', async (req, res, next) => {
         })
         res.render('projects', { session: req.session, projects: rows })
     }
-
+    */
 })
 
-const arrayWrapper = (obj) => {
-    if (Array.isArray(obj)) {
-        return obj
-    } else if (obj === undefined || obj === null) {
-        return []
-    } else {
-        return [obj]
-    }
-}
 
 router.get('/create', async (req, res, next) => {
     // create project
@@ -111,7 +153,7 @@ router.post('/create', async (req, res, next) => {
         errors.push('amountsought')
     }
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    today.setHours(0, 0, 0, 0) //time insensitive compare
     if (new Date(req.body.duedate) < today) {
         errors.push('duedate')
     }
@@ -128,8 +170,13 @@ router.post('/create', async (req, res, next) => {
 
 router.post('/all/:page', async (req, res, next) => {
     // default is name, asc, all, all
-    req.session.projectfilters = req.body
-    res.redirect('/project/all/1')
+    // translate body to params
+    console.log(req.body)
+    let query = ''
+    for (let key in req.body) {
+        query += `${key}=${req.body[key]}`
+    }
+    res.redirect('/project/all/1?' + query)
 })
 
 router.post('/:id/fund', async (req, res, next) => {
@@ -194,6 +241,7 @@ router.post('/search', async (req, res, next) => {
     req.session.searchparams = req.body.searchparams.trim().split(/\s+/)
     res.redirect('/project/search/1')
 })
+
 
 
 module.exports = router

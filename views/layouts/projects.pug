@@ -28,25 +28,27 @@ block body
 				a.btn.btn-primary.btn-lg(href='/project/create', role='button') Start a new project »
 			form(method='POST')
 				h4 Order by
-				+radio-inline("Name", "orderby", "1", "name")
-				+radio-inline("Funded amount", "orderby", "1", "fundedamt")
-				+radio-inline("Target amount", "orderby2", "1", "targetamt")
+				+radio-inline("Name", "orderby", "1", "t.name")
+				+radio-inline("Funded amount", "orderby", "1", "t.amountfunded")
+				+radio-inline("Target amount", "orderby2", "1", "t.amountsought")
 				h4 Order
-				+radio-inline("Ascending", "order", "1", "asc")
-				+radio-inline("Descending", "order", "1", "desc")
+				+radio-inline("Ascending", "order", "1", "ASC")
+				+radio-inline("Descending", "order", "1", "DESC")
 				h4 Status
-				+radio-inline("Funded", "status", "1", "true")
-				+radio-inline("Not funded", "status", "1", "false")
+				+radio-inline("Funded", "status", "1", "funded")
+				+radio-inline("Not funded", "status", "1", "notfunded")
 				h4 Due date
-				+radio-inline("Passed", "duepassed", "1", "true")
-				+radio-inline("Not passed", "duepassed", "1", "false")
+				+radio-inline("Passed", "duepassed", "1", "passed")
+				+radio-inline("Not passed", "duepassed", "1", "notpassed")
 				br
 				+submit("Filter")
 	.container
+		if projects.length === 0
+			h2 None
 		each project in projects
 			.col-md-4
 				img.img-circle(src='../../images/marketing'+project.imageid+'.jpg', alt='Generic placeholder image', width='60', height='60')
-				h2 #{project.name}
+				h2 #{project.name.substring(0, 21)}
 				br
 				p #{ project.description.substring(0, 300) + '...' }
 				+progress-bar-striped(project.percentagefunded)
