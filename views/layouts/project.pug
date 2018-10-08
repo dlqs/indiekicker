@@ -34,37 +34,40 @@ block body
 		hr
 	.jumbotron
 		.container
-			p
-				| YOU can help them reach their goal! Unless you're feeling selfish today...
-			form.navbar-form.navbar-nav(method='post', action='/project/'+project.projectid+'/fund')
-				.form-group
-					p 
-						| Credit card number (totally secure)
-						br
-						input.form-control(name='ccn', type='number', required='', placeholder='xxxxxx-xxxxxx-xxxx')
-					if fundings.funded === true
-						br
-						p
-							| <strong>Already funded! Not enough adrenaline?</strong>
-						p
-							| Update funded amount <i>(last funded: $#{ fundings.amount }, new amount must be more)</i>
+			if passed === true
+				p This project is over! Thanks for all your support.
+			else
+				p
+					| YOU can help them reach their goal! Unless you're feeling selfish today...
+				form.navbar-form.navbar-nav(method='post', action='/project/'+project.projectid+'/fund')
+					.form-group
+						p 
+							| Credit card number (totally secure)
 							br
-							input.form-control(name='amount', type='number', placeholder='$'+fundings.amount)
-					else
-						p
-							| Amount <i>(maximium: $#{ project.amountsought - project.amountfunded })</i>
+							input.form-control(name='ccn', type='number', required='', placeholder='xxxxxx-xxxxxx-xxxx')
+						if fundings.funded === true
 							br
-							input.form-control(name='amount', type='number', placeholder='$')
-				br
-				br
-				button.btn.btn-success.btn-lg(type='submit') Fund them now! »
-				if (error)
-					each message in error
-						p
-							+alert-warning(message)
-				if (success)
-					each message in success
-						p
-							+alert-success(message)
+							p
+								| <strong>Already funded! Not enough adrenaline?</strong>
+							p
+								| Update funded amount <i>(last funded: $#{ fundings.amount }, new amount must be more)</i>
+								br
+								input.form-control(name='amount', type='number', placeholder='$'+fundings.amount)
+						else
+							p
+								| Amount <i>(maximium: $#{ project.amountsought - project.amountfunded })</i>
+								br
+								input.form-control(name='amount', type='number', placeholder='$')
+					br
+					br
+					button.btn.btn-success.btn-lg(type='submit') Fund them now! »
+					if (error)
+						each message in error
+							p
+								+alert-warning(message)
+					if (success)
+						each message in success
+							p
+								+alert-success(message)
 	footer
 	block content

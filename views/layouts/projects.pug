@@ -27,21 +27,64 @@ block body
 			p
 				a.btn.btn-primary.btn-lg(href='/project/create', role='button') Start a new project »
 			form(method='POST')
+
 				h4 Order by
-				+radio-inline("Name", "orderby", "1", "t.name")
-				+radio-inline("Funded amount", "orderby", "1", "t.amountfunded")
-				+radio-inline("Target amount", "orderby2", "1", "t.amountsought")
+
+				if queries.orderby==="t.name"
+					+radio-inline("Name", "orderby", "1", "t.name","")
+				else
+					+radio-inline("Name", "orderby", "1", "t.name")
+				if queries.orderby==="t.amountfunded"
+					+radio-inline("Funded amount", "orderby", "1", "t.amountfunded", "")
+				else
+					+radio-inline("Funded amount", "orderby", "1", "t.amountfunded")
+				if queries.orderby==="t.amountsought"
+					+radio-inline("Target amount", "orderby", "1", "t.amountsought", "")
+				else
+					+radio-inline("Target amount", "orderby", "1", "t.amountsought")
+				if queries.orderby==="t.startdate"
+					+radio-inline("Start date", "orderby", "1", "t.startdate", "")
+				else
+					+radio-inline("Start date", "orderby", "1", "t.startdate")
+				if queries.orderby==="t.duedate"
+					+radio-inline("Due date", "orderby", "1", "t.duedate", "")
+				else
+					+radio-inline("Due date", "orderby", "1", "t.duedate")
+
 				h4 Order
-				+radio-inline("Ascending", "order", "1", "ASC")
-				+radio-inline("Descending", "order", "1", "DESC")
+
+				if queries.order==="ASC"
+					+radio-inline("Ascending", "order", "1", "ASC","")
+				else
+					+radio-inline("Ascending", "order", "1", "ASC")
+				if queries.order==="DESC"
+					+radio-inline("Descending", "order", "1", "DESC","")
+				else
+					+radio-inline("Descending", "order", "1", "DESC")
+
 				h4 Status
-				+radio-inline("Funded", "status", "1", "funded")
-				+radio-inline("Not funded", "status", "1", "notfunded")
+
+				if queries.status==="funded"
+					+radio-inline("Funded", "status", "1", "funded","")
+				else
+					+radio-inline("Funded", "status", "1", "funded")
+				if queries.status==="notfunded"
+					+radio-inline("Not funded", "status", "1", "notfunded","")
+				else
+					+radio-inline("Not funded", "status", "1", "notfunded")
+
 				h4 Due date
-				+radio-inline("Passed", "duepassed", "1", "passed")
-				+radio-inline("Not passed", "duepassed", "1", "notpassed")
+
+				if queries.duedate==="passed"
+					+radio-inline("Passed", "duedate", "1", "passed","")
+				else
+					+radio-inline("Passed", "duedate", "1", "passed")
+				if queries.duedate==="notpassed"
+					+radio-inline("Not passed", "duedate", "1", "notpassed","")
+				else
+					+radio-inline("Not passed", "duedate", "1", "notpassed")
 				br
-				+submit("Filter")
+				+submit("Sort")
 	.container
 		if projects.length === 0
 			h2 None
@@ -49,11 +92,11 @@ block body
 			.col-md-4
 				img.img-circle(src='../../images/marketing'+project.imageid+'.jpg', alt='Generic placeholder image', width='60', height='60')
 				h2 #{project.name.substring(0, 21)}
-				br
-				p #{ project.description.substring(0, 300) + '...' }
+				p #{ project.description.substring(0, 50) + '...' }
 				+progress-bar-striped(project.percentagefunded)
-				h4 Looking for a total of $#{ project.amountsought }
-				h4 Due #{ project.duedate.toString().substring(0, 15)}
+				h3 Currently at $#{ project.amountfunded } / $#{ project.amountsought }
+				h5 Started #{ project.startdate.toString().substring(0, 15)}
+				h5 Due     #{ project.duedate.toString().substring(0, 15)}
 				p
 					a.btn.btn-default(href='/project/'+project.projectid, role='button') Contribute! »
 		hr

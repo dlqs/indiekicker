@@ -43,9 +43,11 @@ const isTheUser = async (req, res, next) => {
 router.use('/:id', isTheUser)
 
 router.get('/:id', async (req, res, next) => {
-    const userRows = await db.query('SELECT * FROM USERS u where u.userid=$1', [req.params.id])
-    const projectRows = await db.query('SELECT * FROM projects p where p.owner=$1', [req.params.id])
+    const userRows = await db.query('SELECT * FROM USERS u WHERE u.userid=$1', [req.params.id])
+    const projectRows = await db.query('SELECT * FROM projects p WHERE p.owner=$1', [req.params.id])
+    const fundedRows = await db.query('SELECT p.name, f.amount, p.projectid from fundings f, projects p WHERE f.projectid=p.projectid AND f.userid=$1', [req.params.id])
     const projects = projectRows.rows
+    const funded = fundedRows.rows
     const user = {
         username: userRows.rows[0].username,
         name: userRows.rows[0].name,
@@ -54,7 +56,8 @@ router.get('/:id', async (req, res, next) => {
     res.render('user', {
         session: req.session,
         user: user,
-        projects: projects
+        projects: projects,
+        funded: funded
     })
 })
 

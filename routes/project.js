@@ -13,13 +13,18 @@ const arrayWrapper = (obj) => {
     }
 }
 
+const datePassed = (date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) //time insensitive compare
+    return today > date
+}
+
 router.get('/all/:page', async (req, res, next) => {
     let queries = arrayWrapper(req.query.query)
     let orderby = req.query.orderby === undefined ? 'name': req.query.orderby
     let order = req.query.order === undefined ? 'ASC': req.query.order
     let status = req.query.status === undefined ? null : req.query.status
     let duedate = req.query.duedate === undefined ? null : req.query.duedate
-
 
     const wcond = []
     if (status !== null) {
@@ -44,6 +49,7 @@ router.get('/all/:page', async (req, res, next) => {
                    FROM totalfunding t ' +
                    'WHERE ' + where +
                    ' ORDER BY ' + orderby + ' ' + order
+    console.log(query)
     let { rows } = await db.query(query)
 
     // images
@@ -53,71 +59,14 @@ router.get('/all/:page', async (req, res, next) => {
             ...proj
         }
     })
-    res.render('projects', { session: req.session, projects: rows })
-    // name, description, projectid, imageid
-    /**
-    if ('projectfilters' in req.session) {
-        const wcond = ['now() > p.duedate', 'p.amountfunded >= p.amountsought']
-        if ('orderby' in req.session.projectfilters) {
-            if (req.session.projectfilters.orderby === 'name') {
-
-            } else if (req.session.projectfilters.orderby === 'fundingamt') {
-
-            } else if (req.session.projectfilters.orderby === 'targetamt') {
-
-            } else {
-                console.error('Unrecognized filter')
-            }
-        } else {
-            //default orderby name
-        }
-        if ('order' in req.session.projectfilters) {
-            
-
-        } else {
-            //default order is ASC
-        }
-        if ('funded' in req.session.projectfilters) {
-
-        } else {
-            //default show both funded and not
-        }
-        if ('duepassed' in req.session.projectfilters) {
-            
-        } else {
-            //default show both duepassed and not
-        }
-        const where = wcond !== [] ? (wcond.length === 1 ? wcond[0] : wcond.join(' AND ')) : 'TRUE'
-        const orderby = 'p.name'
-        const order = 'ASC'
-        const query = 'SELECT p.*, (SELECT SUM(amount) FROM fundings f WHERE f.projectid = p.projectid) as amountfunded, \
-                       amountfunded / amountsought * 100.0 as percentagefunded \
-                       FROM projects p ' +
-                       'WHERE ' + where +
-                       ' ORDER BY ' + orderby + ' ' + order
-        let { rows } = await db.query(query)
-        res.render('projects', { session: req.session, projects: rows })
-    } else {
-        let { rows } = 
-            await db.query('WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
-                            FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
-                            SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
-                            FROM totalfunding t ORDER BY t.name')
-        rows = rows.map(proj => {
-            return {
-                'imageid': proj.projectid % 3 + 1,
-                ...proj
-            }
-        })
-        res.render('projects', { session: req.session, projects: rows })
-    }
-    */
+    res.render('projects', { 
+        session: req.session, 
+        projects: rows,
+        queries: req.query
+    })
 })
 
-
 router.get('/create', async (req, res, next) => {
-    // create project
-    // get categories
     let error = arrayWrapper(req.query.error)
     let success = arrayWrapper(req.query.success)
     error = error.map(err => {
@@ -143,7 +92,12 @@ router.get('/create', async (req, res, next) => {
             return row.category
         }
     })
-    res.render('createproject', { session: req.session, categories: rows, error: error, success: success})
+    res.render('createproject', { 
+        session: req.session, 
+        categories: rows, 
+        error: error, 
+        success: success
+    })
 })
 
 router.post('/create', async (req, res, next) => {
@@ -174,7 +128,7 @@ router.post('/all/:page', async (req, res, next) => {
     console.log(req.body)
     let query = ''
     for (let key in req.body) {
-        query += `${key}=${req.body[key]}`
+        query += `${key}=${req.body[key]}&`
     }
     res.redirect('/project/all/1?' + query)
 })
@@ -220,6 +174,7 @@ router.get('/:id', async (req, res, next) => {
     const fundings = {
         funded: false
     }
+    const passed = datePassed(rows[0].duedate)
     if (fundedRows.rows.length === 1) {
         fundings.funded = true
         fundings.amount = fundedRows.rows[0].amount
@@ -230,7 +185,14 @@ router.get('/:id', async (req, res, next) => {
         // necessary to delete
         delete req.session.error
         delete req.session.success
-        res.render('project', { session: req.session, project: rows[0], fundings: fundings, error: err, success: succ })
+        res.render('project', { 
+                session: req.session, 
+                project: rows[0], 
+                fundings: fundings, 
+                error: err, 
+                success: succ, 
+                passed: passed 
+            })
     } else {
         res.status(404).send('Project not found')
     }

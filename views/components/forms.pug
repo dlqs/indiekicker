@@ -30,9 +30,9 @@ mixin radio(text,name,id)
             = text
 
 //- Radio box - Inline style
-mixin radio-inline(text,name,id,val)
+mixin radio-inline(text,name,id,val,checked)
     .radio-inline
-        input(type="radio",name=name,id=id,value=val)
+        input(type="radio",name=name,id=id,value=val,checked=checked)
         = text
 
 //- Submit button

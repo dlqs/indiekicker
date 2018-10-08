@@ -30,8 +30,14 @@ block body
 			p None
 		each project in projects
 			h4
-				| Project: <strong>#{project.name}</strong>         
-				a.btn.btn-info(href='/project/'+project.projectid, role='button') Visit »
+				a.btn.btn-default(href='/project/'+project.projectid, role='button') <strong>#{project.name}</strong> »
+		h2 Projects I've funded
+		if (funded.length === 0)
+			p None
+		each funding in funded
+			h4
+				| <strong>$#{funding.amount}</strong> to 
+				a.btn.btn-default(href='/project/'+funding.projectid, role='button') <strong>#{funding.name}</strong> »
 		form(method='post')
 			h2.form-signin-heading Change profile information
 			label(for='name') Name
