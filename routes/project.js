@@ -21,8 +21,6 @@ const datePassed = (date) => {
 
 router.get('/all/:page', async (req, res, next) => {
     let queries = arrayWrapper(req.query.q)
-    let orderby = req.query.orderby === undefined ? 'name': req.query.orderby
-    let order = req.query.order === undefined ? 'ASC': req.query.order
     let status = req.query.status === undefined ? null : req.query.status
     let duedate = req.query.duedate === undefined ? null : req.query.duedate
 
@@ -45,6 +43,9 @@ router.get('/all/:page', async (req, res, next) => {
     let query 
 
     if (queries.length > 0) {
+        // custom order
+        let orderby = req.query.orderby === undefined ? 'matches': req.query.orderby
+        let order = req.query.order === undefined ? 'DESC': req.query.order
         // delete
         await db.query('DELETE FROM queries q WHERE q.userid=$1', [req.session.userid])
         //insert
@@ -53,12 +54,16 @@ router.get('/all/:page', async (req, res, next) => {
         }
         query = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
                  FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
-                 SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded, count(*) as matches \
+                 SELECT t.*, (t.amountfunded / t.amountsought * 100.0) AS percentagefunded, COUNT(*) AS matches \
                  FROM totalfunding t, queries q, keywords k \
                  WHERE q.userid='+req.session.userid+' AND t.projectid=k.projectid AND k.keyword::citext=q.keyword \
-                 group by t.projectid, t.owner, t.name, t.description, t.amountsought, t.startdate, t.duedate, t.category, t.amountfunded \
-                 order by count(*) desc'
+                 GROUP BY t.projectid, t.owner, t.name, t.description, t.amountsought, t.startdate, t.duedate, t.category, t.amountfunded \
+                 HAVING ' + where +
+                 ' ORDER BY ' + orderby + ' ' + order
     } else {
+        let orderby = req.query.orderby === undefined ? 'name': req.query.orderby
+        let order = req.query.order === undefined ? 'ASC': req.query.order
+
         query = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
                        FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
                        SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
@@ -140,10 +145,14 @@ router.post('/create', async (req, res, next) => {
 
 router.post('/all/:page', async (req, res, next) => {
     // translate body to params
+    let urlqueries = arrayWrapper(req.query.q)
     let query = ''
     for (let key in req.body) {
         query += `${key}=${req.body[key]}&`
     }
+    urlqueries.forEach(param => {
+        query += `q=${param}&`
+    })
     res.redirect('/project/all/1?' + query)
 })
 
