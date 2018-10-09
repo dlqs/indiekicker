@@ -20,7 +20,7 @@ const datePassed = (date) => {
 }
 
 router.get('/all/:page', async (req, res, next) => {
-    let queries = arrayWrapper(req.query.query)
+    let queries = arrayWrapper(req.query.q)
     let orderby = req.query.orderby === undefined ? 'name': req.query.orderby
     let order = req.query.order === undefined ? 'ASC': req.query.order
     let status = req.query.status === undefined ? null : req.query.status
@@ -42,31 +42,42 @@ router.get('/all/:page', async (req, res, next) => {
         }
     }
     const where = wcond.length !== 0 ? (wcond.length === 1 ? wcond[0] : wcond.join(' AND ')) : 'TRUE'
-
-    const query = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
-                   FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
-                   SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
-                   FROM totalfunding t ' +
-                   'WHERE ' + where +
-                   ' ORDER BY ' + orderby + ' ' + order
+    let query 
 
     if (queries.length > 0) {
         // delete
-        await db.query('DELETE * FROM queries q WHERE q.userid=$1', [req.params.userid])
+        await db.query('DELETE FROM queries q WHERE q.userid=$1', [req.session.userid])
         //insert
-        queries.forEach(async (param) => {
+        for (let param of queries) {
             await db.query('INSERT INTO queries VALUES ($1, $2)', [req.session.userid, param])
-        })
-        const query = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+        }
+        query = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                 FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                 SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded, count(*) as matches \
+                 FROM totalfunding t, queries q, keywords k \
+                 WHERE q.userid='+req.session.userid+' AND t.projectid=k.projectid AND k.keyword::citext=q.keyword \
+                 group by t.projectid, t.owner, t.name, t.description, t.amountsought, t.startdate, t.duedate, t.category, t.amountfunded \
+                 order by count(*) desc'
+    } else {
+        query = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
                        FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
                        SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
-                       FROM totalfunding t, queries q, keywords k \
-                       WHERE q.userid='+req.session.userid+', t.projectid=k.projectid, k.keyword::citext=q.keyword \
-                       GROUP BY t.projectid'
+                       FROM totalfunding t ' +
+                       'WHERE ' + where +
+                       ' ORDER BY ' + orderby + ' ' + order
     }
 
-    let { rows } = await db.query(query)
+    console.log(await db.query('SELECT * FROM queries'))
+    let result = await db.query(query)
+    //let { rows } = await db.query('WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+    //             FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+    //             SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded, count(*) as matches \
+    //             FROM totalfunding t, queries q, keywords k \
+    //             WHERE q.userid=9 AND t.projectid=k.projectid AND k.keyword::citext=q.keyword \
+    //             group by t.projectid, t.owner, t.name, t.description, t.amountsought, t.startdate, t.duedate, t.category, t.amountfunded \
+    //             order by count(*) desc')
     // images
+    let rows = result.rows
     rows = rows.map(proj => {
         return {
             'imageid': proj.projectid % 3 + 1,
@@ -136,9 +147,7 @@ router.post('/create', async (req, res, next) => {
 })
 
 router.post('/all/:page', async (req, res, next) => {
-    // default is name, asc, all, all
     // translate body to params
-    console.log(req.body)
     let query = ''
     for (let key in req.body) {
         query += `${key}=${req.body[key]}&`
@@ -214,9 +223,12 @@ router.get('/:id', async (req, res, next) => {
 })
 
 router.post('/search', async (req, res, next) => {
-    // default is name, asc, all, all
-    req.session.searchparams = req.body.searchparams.trim().split(/\s+/)
-    res.redirect('/project/search/1')
+    const searchparams = req.body.searchparams.trim().split(/\s+/)
+    let query = ''
+    searchparams.forEach(param => {
+        query += `q=${param}&`
+    })
+    res.redirect('/project/all/1?'+query)
 })
 
 
