@@ -195,8 +195,10 @@ router.get('/:id', async (req, res, next) => {
                             FROM totalfunding t WHERE t.projectid=$1', [req.params.id])
     let fundedRows = await db.query('SELECT * FROM fundings f WHERE f.userid=$1 and f.projectid=$2', [req.session.userid, req.params.id])
     let keywordRows = await db.query('SELECT * FROM keywords k WHERE k.projectid=$1', [req.params.id])
+    let contributorRows = await db.query('SELECT * FROM projects p, fundings f, users u WHERE p.projectid=f.projectid AND u.userid=f.userid AND p.projectid=$1', [req.params.id])
+    let ownerRows = await db.query('SELECT * FROM projects p, users u WHERE p.owner=u.userid AND p.projectid=$1', [req.params.id])
+    const contributors = contributorRows.rows
     const keywords = keywordRows.rows.map(row => row.keyword)
-    console.log(keywords)
     const fundings = {
         funded: false
     }
@@ -220,7 +222,9 @@ router.get('/:id', async (req, res, next) => {
                 success: succ, 
                 passed: passed,
                 fullyfunded:fullyfunded,
-                keywords:keywords
+                keywords:keywords,
+                contributors: contributors,
+                ownerName: ownerRows.rows[0].name
             })
     } else {
         res.status(404).send('Project not found')

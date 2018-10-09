@@ -26,6 +26,7 @@ block body
 			h1 #{project.name}
 			h3 Started #{ project.startdate.toString().substring(0, 15)}
 			h3 Due #{ project.duedate.toString().substring(0, 15)}
+			h3 Owner: #{ ownerName }
 			h4 <i>Keywords: #{ keywords}</i>
 			br
 			p Description: #{ project.description }
@@ -34,6 +35,13 @@ block body
 			else
 				+progress-bar-striped(project.percentagefunded)
 			h4 Currently at $#{ project.amountfunded } / $#{ project.amountsought }
+			br
+			if contributors.length !== 0
+				h4 Current contributors to project:
+				each contributor in contributors
+					h4
+						| <strong>$#{contributor.amount}</strong> from #{contributor.name}
+			br
 			h3 <i>Help them reach their goal today!</i>
 		hr
 	.jumbotron
