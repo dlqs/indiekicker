@@ -194,6 +194,9 @@ router.get('/:id', async (req, res, next) => {
                             SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
                             FROM totalfunding t WHERE t.projectid=$1', [req.params.id])
     let fundedRows = await db.query('SELECT * FROM fundings f WHERE f.userid=$1 and f.projectid=$2', [req.session.userid, req.params.id])
+    let keywordRows = await db.query('SELECT * FROM keywords k WHERE k.projectid=$1', [req.params.id])
+    const keywords = keywordRows.rows.map(row => row.keyword)
+    console.log(keywords)
     const fundings = {
         funded: false
     }
@@ -216,7 +219,8 @@ router.get('/:id', async (req, res, next) => {
                 error: err, 
                 success: succ, 
                 passed: passed,
-                fullyfunded:fullyfunded
+                fullyfunded:fullyfunded,
+                keywords:keywords
             })
     } else {
         res.status(404).send('Project not found')

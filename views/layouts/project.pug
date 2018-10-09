@@ -26,6 +26,7 @@ block body
 			h1 #{project.name}
 			h3 Started #{ project.startdate.toString().substring(0, 15)}
 			h3 Due #{ project.duedate.toString().substring(0, 15)}
+			h4 <i>Keywords: #{ keywords}</i>
 			br
 			p Description: #{ project.description }
 			if fullyfunded === true
