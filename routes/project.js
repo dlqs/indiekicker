@@ -66,16 +66,7 @@ router.get('/all/:page', async (req, res, next) => {
                        'WHERE ' + where +
                        ' ORDER BY ' + orderby + ' ' + order
     }
-
-    console.log(await db.query('SELECT * FROM queries'))
     let result = await db.query(query)
-    //let { rows } = await db.query('WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
-    //             FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
-    //             SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded, count(*) as matches \
-    //             FROM totalfunding t, queries q, keywords k \
-    //             WHERE q.userid=9 AND t.projectid=k.projectid AND k.keyword::citext=q.keyword \
-    //             group by t.projectid, t.owner, t.name, t.description, t.amountsought, t.startdate, t.duedate, t.category, t.amountfunded \
-    //             order by count(*) desc')
     // images
     let rows = result.rows
     rows = rows.map(proj => {
@@ -87,7 +78,8 @@ router.get('/all/:page', async (req, res, next) => {
     res.render('projects', { 
         session: req.session, 
         projects: rows,
-        queries: req.query
+        queries: req.query,
+        queryparams: queries
     })
 })
 

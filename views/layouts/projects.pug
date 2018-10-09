@@ -85,6 +85,10 @@ block body
 					+radio-inline("Not passed", "duedate", "1", "notpassed")
 				br
 				+submit("Sort")
+			br
+			if queryparams.length !== 0
+				h3 Keywords
+				p #{queryparams}
 	.container
 		if projects.length === 0
 			h2 None
@@ -97,6 +101,8 @@ block body
 				h3 Currently at $#{ project.amountfunded } / $#{ project.amountsought }
 				h5 Started #{ project.startdate.toString().substring(0, 15)}
 				h5 Due     #{ project.duedate.toString().substring(0, 15)}
+				if queryparams.length !== 0
+					h5 Matches #{ project.matches } keywords
 				p
 					a.btn.btn-default(href='/project/'+project.projectid, role='button') Contribute! »
 		hr
