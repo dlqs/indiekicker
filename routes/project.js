@@ -103,6 +103,8 @@ router.get('/create', async (req, res, next) => {
     success = success.map(succ => {
         if (succ === 'created') {
             return '<strong>Success!</strong> You have started a project.'
+        } else if (succ === 'updated') {
+            return '<strong>Success!</strong> You have updated your funding amount.'
         }
     })
     let { rows } = await db.query('SELECT distinct p.category from projects p;')
@@ -166,12 +168,12 @@ router.post('/:id/fund', async (req, res, next) => {
 
     if (fundedRows.rows.length === 1) {
         //funded
-        if (req.body.amount <= fundedRows.rows[0].amount) {
+        if (parseInt(req.body.amount) <= parseInt(fundedRows.rows[0].amount)) {
             req.session.error = ['<strong>Error:</strong> New funding amount must be more!']
         }
     } else {
         // not funded
-        if (req.body.amount + rows[0].amountfunded <= rows[0].amountsought) {
+        if (parseInt(req.body.amount) + parseInt(rows[0].amountfunded) <= parseInt(rows[0].amountsought)) {
             try {
                 const result = await db.query('INSERT INTO fundings VALUES ($1, $2, now(), $3)', [req.session.userid, req.params.id, req.body.amount])
             } catch (error){
