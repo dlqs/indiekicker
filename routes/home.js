@@ -36,7 +36,7 @@ router.get("/", async (req, res, next) => {
     rowProjects = rowProjects.rows.map(proj => {
         return {
             heading: proj.name,
-            description: proj.description.substring(0, 300) + '...',
+            description: proj.description.substring(0, 200) + '...',
             id: proj.projectid
         }
     })

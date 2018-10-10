@@ -95,7 +95,7 @@ block body
 		each project in projects
 			.col-md-4
 				img.img-circle(src='../../images/marketing'+project.imageid+'.jpg', alt='Generic placeholder image', width='60', height='60')
-				h2 #{project.name.substring(0, 21)}
+				h2 #{project.name.replace(/(\r\n\t|\n|\r\t)/gm,"").substring(0, 21)}
 				p #{ project.description.substring(0, 50) + '...' }
 				+progress-bar-striped(project.percentagefunded)
 				h3 Currently at $#{ project.amountfunded } / $#{ project.amountsought }

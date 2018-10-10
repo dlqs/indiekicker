@@ -71,4 +71,9 @@ block body
 			if (success)
 				each message in success
 					+alert-success(message)
+		hr
+		br
+		form(method='post', action='user/'+user.userid+'/delete')
+			button.btn.btn-lg.btn-danger.btn-block(type='submit') Delete account
+			br
 	

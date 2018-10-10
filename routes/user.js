@@ -60,6 +60,9 @@ router.get('/all', async (req, res, next) => {
 // normal users go through this route.
 router.use('/:id', isTheUser)
 
+router.post('/:id/delete', async (req, res, next) => {
+})
+
 router.get('/:id', async (req, res, next) => {
     const userRows = await db.query('SELECT * FROM USERS u WHERE u.userid=$1', [req.params.id])
     const projectRows = await db.query('SELECT * FROM projects p WHERE p.owner=$1', [req.params.id])
@@ -68,6 +71,7 @@ router.get('/:id', async (req, res, next) => {
     const fundingGatheredRows = await db.query('SELECT SUM(f.amount) as funding FROM fundings f, projects p WHERE p.owner=$1 AND f.projectid=p.projectid', [req.params.id])
     const projects = projectRows.rows
     const user = {
+        userid: userRows.rows[0].userid,
         username: userRows.rows[0].username,
         name: userRows.rows[0].name,
         email: userRows.rows[0].email,
@@ -160,7 +164,5 @@ router.post('/:id', [
         })
         return
 })
-
-
 
 module.exports = router
