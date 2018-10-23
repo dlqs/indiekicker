@@ -1,0 +1,31 @@
+extends ../_bootstrap
+append styles
+	// Custom styles for this template
+	link(href='../../css/jumbotron.css', rel='stylesheet')
+block body
+	.container
+		+navbar-fixed('indiekicker', 'navbar', session.admin ? 'inverse': 'default')
+			li
+				a Hello, #{session.name}
+			+nav_item("/") Home
+			+nav_item("/project/all/1") Projects
+			+nav_item("/category/all/1", "active") Categories
+			+nav_item("/user/" + session.userid) My profile
+			if session.admin === true
+				+nav_item("/user/all") All users
+			form.navbar-form.navbar-nav(method='post', action='/project/search')
+				.form-group
+					input.form-control(name='searchparams', type='text', placeholder='Search keyword')
+				button.btn.btn-success(type='submit') Search
+			form.navbar-form.navbar-right(method='post', action='/logout')
+				button.btn.btn-primary(type='submit') Logout
+	.container
+		each project in projects
+			.col-md-4
+				br
+				img.img-circle(src='../../images/marketing'+(project.projectid%3+1)+'.jpg', alt='Generic placeholder image', width='60', height='60')
+				h2 #{project.name.replace(/(\r\n\t|\n|\r\t)/gm,"").substring(0, 21)}
+				p #{ project.description.substring(0, 50) + '...' }
+				a.btn.btn-default(href='/project/'+project.projectid, role='button') Contribute! »
+				br
+	block content

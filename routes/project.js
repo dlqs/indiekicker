@@ -110,7 +110,7 @@ router.get('/create', async (req, res, next) => {
     let { rows } = await db.query('SELECT distinct p.category from projects p;')
     rows = rows.map(row => {
         if (row.category === null) {
-            return 'others'
+            return 'uncategorized'
         } else {
             return row.category
         }
@@ -139,8 +139,13 @@ router.post('/create', async (req, res, next) => {
     if (errors) {
         res.redirect('/project/create?' + errors)
     } else {
-        await db.query('INSERT INTO projects VALUES (default, $1, $2, $3, $4, now(), $5, $6)', 
+        const { rows }= await db.query('INSERT INTO projects VALUES (default, $1, $2, $3, $4, now(), $5, $6) RETURNING projectid', 
             [req.session.userid, req.body.name, req.body.description, amountsought, req.body.duedate, req.body.category])
+        const createdprojectid = rows[0].projectid
+        const keywords = req.body.keywords.toLowerCase().trim().split(/\s+/)
+        for (let word of keywords) {
+            await db.query("INSERT INTO keywords values ($1, $2)", [createdprojectid, word])
+        }
         res.redirect('/project/create?success=created')
     }
 })
@@ -200,7 +205,7 @@ router.get('/:id', async (req, res, next) => {
     let contributorRows = await db.query('SELECT * FROM projects p, fundings f, users u WHERE p.projectid=f.projectid AND u.userid=f.userid AND p.projectid=$1', [req.params.id])
     let ownerRows = await db.query('SELECT * FROM projects p, users u WHERE p.owner=u.userid AND p.projectid=$1', [req.params.id])
     const contributors = contributorRows.rows
-    const keywords = keywordRows.rows.map(row => row.keyword)
+    const keywords = keywordRows.rows.map(row => " " + row.keyword )
     const fundings = {
         funded: false
     }

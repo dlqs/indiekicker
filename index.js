@@ -11,6 +11,7 @@ const user = require('./routes/user')
 const login = require('./routes/login')
 const project = require('./routes/project')
 const logout = require('./routes/logout')
+const category = require('./routes/category')
 
 const app = express()
 
@@ -40,6 +41,7 @@ app.use(isAUser)
 app.use('/', home)
 app.use('/user', user)
 app.use('/project', project)
+app.use('/category', category)
 app.use('/logout', logout)
 
 app.listen(3000, 'localhost', () => {
