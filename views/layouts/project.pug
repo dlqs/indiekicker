@@ -22,7 +22,7 @@ block body
 	br
 	.container
 		.col-md-12
-			img.img-circle(src='../images/marketing'+((project.projectid%3)+1)+'.jpg', alt='Generic placeholder image', width='80', height='80')
+			img.img-circle(src='../images/marketing'+((project.projectid%22)+1)+'.jpeg', alt='Generic placeholder image', width='250', height='250')
 			h1 #{project.name}
 			h3 Started #{ project.startdate.toString().substring(0, 15)}
 			h3 Due #{ project.duedate.toString().substring(0, 15)}
@@ -47,7 +47,7 @@ block body
 	.jumbotron
 		.container
 			if passed === true
-				p This project is over! Thanks for all your support.
+				p This project has passed its due date! Thanks for all your support.
 			else if fullyfunded === true
 				h2 Project is fully funded! (No refunds, remember?)
 			else

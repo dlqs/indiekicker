@@ -1,20 +1,18 @@
 //- carousel caption
-mixin carousel-caption(item)
+mixin carousel-caption(project)
 	.carousel-caption
-		unless !item.h1
-			h1 #{item.h1}
-		unless !item.p
-			p #{item.p}
-		unless !item.button
-			p
-				a.btn.btn-lg.btn-primary(href="#{item.button.url}" role="button") #{item.button.caption}
+		h2 Project: <b>#{project.name}</b> | #{project.category}
+		p 
+			| #{project.percentagefunded.substring(0, 5)}% funded
+		p
+			a.btn.btn-lg.btn-primary(href=`/project/${project.projectid}` role="button") #{project.daysleft} days left to contribute!
 
 //- carousel
-mixin carousel(id,items)
+mixin carousel(id,projects)
 	.carousel.slide(id=`carousel-${id}`,data-ride="carousel")
 		//- Indicators
 		ol.carousel-indicators
-			each item,index in items
+			each project,index in projects
 				if(index === 0)
 					li.active(data-target=`#carousel-${id}`, data-slide-to="#{index}")
 				else
@@ -23,16 +21,16 @@ mixin carousel(id,items)
 
 		//- Wrapper for slides
 		.carousel-inner(role="listbox")
-			each item,index in items
+			each project,index in projects
 				if(index === 0)
 					.item.active
-						img(src=`${item.image}`)
-						+carousel-caption(item)
+						img(src=`../images/carousel${index+1}.jpeg`)
+						+carousel-caption(project)
 							
 				else
 					.item
-						img(src=`${item.image}`)
-						+carousel-caption(item)
+						img(src=`../images/carousel${index+1}.jpeg`)
+						+carousel-caption(project)
 
 		//-  Controls
 		a.left.carousel-control(href=`#carousel-${id}`, role="button", data-slide="prev")

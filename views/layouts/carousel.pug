@@ -27,28 +27,28 @@ block body
 	// Wrap the rest of the page in another container to center all the content.
 	.container.marketing
 		// Three columns of text below the carousel
-		h2.heading Our top projects: fund them today!
+		h2.heading HALL OF FAME: Most funded projects ever (by amount)
 		br
 		.row
 			.col-lg-4
-				img.img-circle(src='../images/marketing1.jpg', alt='Generic placeholder image', width='140', height='140')
-				h2=rowProjects[0].heading
-				p
-					| #{rowProjects[0].description}
+				img.img-circle(src='../images/marketing1.jpeg', alt='Generic placeholder image', width='140', height='140')
+				h4=rowProjects[0].heading
+				h4
+					| <b>$#{rowProjects[0].amountfunded}</b>
 				p
 					a.btn.btn-default(href=`/project/${rowProjects[0].id}`, role='button') View details »
 			.col-lg-4
-				img.img-circle(src='../images/marketing2.jpg', alt='Generic placeholder image', width='140', height='140')
-				h2=rowProjects[1].heading
-				p
-					| #{rowProjects[1].description}
+				img.img-circle(src='../images/marketing2.jpeg', alt='Generic placeholder image', width='140', height='140')
+				h4=rowProjects[1].heading
+				h4
+					| <b>#{rowProjects[1].amountfunded}</b>
 				p
 					a.btn.btn-default(href=`/project/${rowProjects[1].id}`, role='button') View details »
 			.col-lg-4
-				img.img-circle(src='../images/marketing3.jpg', alt='Generic placeholder image', width='140', height='140')
-				h2=rowProjects[2].heading
-				p
-					| #{rowProjects[2].description}
+				img.img-circle(src='../images/marketing3.jpeg', alt='Generic placeholder image', width='140', height='140')
+				h4=rowProjects[2].heading
+				h4
+					| <b>#{rowProjects[2].amountfunded}</b>
 				p
 					a.btn.btn-default(href=`/project/${rowProjects[2].id}`, role='button') View details »
 		// START THE FEATURETTES

@@ -94,7 +94,7 @@ block body
 			h2 None
 		each project in projects
 			.col-md-4
-				img.img-circle(src='../../images/marketing'+project.imageid+'.jpg', alt='Generic placeholder image', width='60', height='60')
+				img.img-circle(src='../../images/marketing'+(project.projectid%22+1)+'.jpeg', alt='Generic placeholder image', width='80', height='80')
 				h2 #{project.name.replace(/(\r\n\t|\n|\r\t)/gm,"").substring(0, 21)}
 				p #{ project.description.substring(0, 50) + '...' }
 				+progress-bar-striped(project.percentagefunded)

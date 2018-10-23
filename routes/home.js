@@ -22,22 +22,32 @@ router.get("/", async (req, res, next) => {
 
     // select top two sets of top 3 projects to display (MUST BE 3)
     // maybe consider almost funded?
-    let rowProjects = await db.query('SELECT * FROM projects LIMIT 3')
-    let carouselProjects = await db.query('SELECT * FROM projects LIMIT 3')
 
-    carouselProjects = carouselProjects.rows.map(proj => {
-        return {
-            image: `../images/carousel${proj.projectid % 3 + 1}.jpg`,
-            h1: proj.name,
-            p: proj.description.substring(0, 200) + '...',
-            button:{caption: "Contribute today", url: "/project/"+proj.projectid}
-        }
-    })
+    // projects with at least 90% but not 100% funded ordered by days left
+    const daysLeftQuery = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                       FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                       SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded, \
+                       DATE_PART(\'days\', t.duedate - now()) as daysleft \
+                       FROM totalfunding t ' +
+                       'WHERE t.amountfunded < t.amountsought AND now() <= t.duedate AND t.amountfunded/t.amountsought > 0.9' +
+                       ' ORDER BY daysleft ASC LIMIT 8'
+    let carouselProjects = await db.query(daysLeftQuery)
+
+    const highestFundedQuery = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                       FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                       SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded \
+                       FROM totalfunding t ' +
+                       'WHERE t.amountfunded >= t.amountsought' +
+                       ' ORDER BY t.amountfunded DESC LIMIT 3'
+    let rowProjects = await db.query(highestFundedQuery)
+
+
     rowProjects = rowProjects.rows.map(proj => {
         return {
-            heading: proj.name,
+            heading: proj.name.substring(0, 30),
             description: proj.description.substring(0, 200) + '...',
-            id: proj.projectid
+            id: proj.projectid,
+            amountfunded: proj.amountfunded
         }
     })
 
@@ -45,7 +55,7 @@ router.get("/", async (req, res, next) => {
         console.log('rowprojects and carousel projects must be length 3')
     }
     res.render('carousel', { 
-        carouselProjects: carouselProjects, 
+        carouselProjects: carouselProjects.rows, 
         rowProjects : rowProjects,
         session: req.session
     })
