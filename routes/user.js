@@ -69,7 +69,17 @@ router.get('/:id', async (req, res, next) => {
     const fundedRows = await db.query('SELECT p.name, f.amount, p.projectid from fundings f, projects p WHERE f.projectid=p.projectid AND f.userid=$1', [req.params.id])
     const fundedAmountRows = await db.query('SELECT SUM(f.amount) as funded FROM fundings f WHERE f.userid=$1', [req.params.id])
     const fundingGatheredRows = await db.query('SELECT SUM(f.amount) as funding FROM fundings f, projects p WHERE p.owner=$1 AND f.projectid=p.projectid', [req.params.id])
+    const oldNotificationRows = await db.query('SELECT * FROM notifications n WHERE n.userid=$1 AND n.seen=TRUE ORDER BY n.createdat DESC LIMIT 10', [req.params.id])
+    const newNotificationRows = await db.query('SELECT * FROM notifications n WHERE n.userid=$1 AND n.seen=FALSE ORDER BY n.createdat DESC LIMIT 10', [req.params.id])
     const projects = projectRows.rows
+    const oldNotif = oldNotificationRows.rows
+    const newNotif = newNotificationRows.rows
+
+    // if rendered, mark as seen
+    for (let notif of newNotif) {
+        await db.query('UPDATE notifications SET seen=TRUE WHERE notificationid=$1', [notif.notificationid])
+    }
+
     const user = {
         userid: userRows.rows[0].userid,
         username: userRows.rows[0].username,
@@ -80,6 +90,8 @@ router.get('/:id', async (req, res, next) => {
         session: req.session,
         user: user,
         projects: projects,
+        oldNotif: oldNotif,
+        newNotif: newNotif,
         funded: fundedRows.rows,
         fundedAmount: fundedAmountRows.rows[0].funded === null ? 0: fundedAmountRows.rows[0].funded,
         fundingGathered: fundingGatheredRows.rows[0].funding === null ? 0: fundingGatheredRows.rows[0].funding

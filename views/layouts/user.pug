@@ -25,6 +25,19 @@ block body
 			p.lead
 				| Welcome to your profile.
 		
+		h2 My notifications
+		if (newNotif.length === 0 && oldNotif.length === 0)
+			p None
+		else
+			each notif in newNotif
+				h5 
+					+icon-success('comment')
+					|  #{ notif.createdat.toString().substring(0, 24) }: #{ notif.notification }
+			each notif in oldNotif
+				h5 
+					+icon('comment')
+					|  #{ notif.createdat.toString().substring(0, 24) }: #{ notif.notification }
+				
 		h2 My projects
 		if (projects.length === 0)
 			p None
