@@ -175,17 +175,27 @@ router.post('/:id/fund', async (req, res, next) => {
         //funded
         if (parseInt(req.body.amount) <= parseInt(fundedRows.rows[0].amount)) {
             req.session.error = ['<strong>Error:</strong> New funding amount must be more!']
+        } else if (parseInt(req.body.amount) + parseInt(rows[0].amountfunded) - fundedRows.rows[0].amount > parseInt(rows[0].amountsought)) {
+            req.session.error = ['<strong>Error:</strong> Funding amount exceeds maximum!']
+        } else {
+            try {
+                const result = await db.query('UPDATE fundings SET amount=$3 WHERE userid=$1 and projectid=$2', [req.session.userid, req.params.id, req.body.amount])
+                req.session.success = ['<strong>Success</strong> Funding update succesfully!']
+            } catch (error){
+                console.log(error)
+                req.session.error = ['<strong>Error:</strong> DB error']
+            }
         }
     } else {
         // not funded
         if (parseInt(req.body.amount) + parseInt(rows[0].amountfunded) <= parseInt(rows[0].amountsought)) {
             try {
                 const result = await db.query('INSERT INTO fundings VALUES ($1, $2, now(), $3)', [req.session.userid, req.params.id, req.body.amount])
+                req.session.success = ['<strong>Success</strong> Thanks for supporting!']
             } catch (error){
                 console.log(error)
                 req.session.error = ['<strong>Error:</strong> DB error']
             }
-            req.session.success = ['<strong>Success</strong> Thanks for supporting!']
         } else {
             // exceeds
             req.session.error = ['<strong>Error:</strong> Funding amount exceeds maximum!']

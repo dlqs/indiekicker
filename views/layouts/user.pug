@@ -32,7 +32,7 @@ block body
 			each notif in newNotif
 				h5 
 					+icon-success('comment')
-					|  #{ notif.createdat.toString().substring(0, 24) }: #{ notif.notification }
+					|  (new) #{ notif.createdat.toString().substring(0, 24) }: #{ notif.notification }
 			each notif in oldNotif
 				h5 
 					+icon('comment')
@@ -60,21 +60,21 @@ block body
 		form(method='post')
 			h2.form-signin-heading Change profile information
 			label(for='name') Name
-			input#name.form-control(type='text', placeholder=`${user.name}`, autofocus='', name='name')
+			input#name.form-control(type='text', placeholder=`${user.name}`, name='name')
 			br
 			label(for='username') Username
-			input#username.form-control(type='text', placeholder=`${user.username}`, autofocus='', name='username')
+			input#username.form-control(type='text', placeholder=`${user.username}`, name='username')
 			br
 			label(for='inputPassword') Password
-			input#password.form-control(type='password', placeholder='New Password (at least 6 characters)', autofocus='', name='password')
+			input#password.form-control(type='password', placeholder='New Password (at least 6 characters)', name='password')
 			br
 			label(for='inputPassword') Confirm password
-			input#passwordConfirm.form-control(type='password', placeholder='Confirm Password', autofocus='', name='passwordconfirm'
+			input#passwordConfirm.form-control(type='password', placeholder='Confirm Password', name='passwordconfirm'
 			br
 			onblur='if ($("#password").val()!==$("#passwordConfirm").val()) { $("#passwordConfirm").css({\'background-color\': \'#f2dede\' }) } else { $("#passwordConfirm").css({\'background-color\':\'#fff\'}) } ')
 			br
 			label(for='email') Email address
-			input#email.form-control(type='text', placeholder=`${user.email}`, autofocus='', name='email')
+			input#email.form-control(type='text', placeholder=`${user.email}`, name='email')
 			br
 			button.btn.btn-lg.btn-primary.btn-block(type='submit') Confirm change
 			br
@@ -86,7 +86,7 @@ block body
 					+alert-success(message)
 		hr
 		br
-		form(method='post', action='user/'+user.userid+'/delete')
+		form(method='post', action='/user/'+user.userid+'/delete')
 			button.btn.btn-lg.btn-danger.btn-block(type='submit') Delete account
 			br
 	

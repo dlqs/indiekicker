@@ -60,7 +60,28 @@ router.get('/all', async (req, res, next) => {
 // normal users go through this route.
 router.use('/:id', isTheUser)
 
+// delete only if users has not made any fundings or started any projects
 router.post('/:id/delete', async (req, res, next) => {
+    let errors = []
+    // check fundings
+    const fundedRows = await db.query('SELECT * from fundings f WHERE f.userid=$1', [req.params.id])
+    const projectRows = await db.query('SELECT * FROM projects p WHERE p.owner=$1', [req.params.id])
+
+    if (fundedRows.rows.length > 0) {
+        errors.push('<strong>Error:</strong> you have already funded a project')
+    }
+    if (projectRows.rows.length > 0) {
+        errors.push('<strong>Error:</strong> you have already started a project')
+    }
+
+    // send back if errors
+    if (errors.length !== 0) {
+        req.session.error = errors
+        res.redirect('back')
+        return
+    }
+    await db.query('DELETE FROM users WHERE userid=$1', [req.params.id])
+    res.redirect('/login?delete=true')
 })
 
 router.get('/:id', async (req, res, next) => {
@@ -86,6 +107,12 @@ router.get('/:id', async (req, res, next) => {
         name: userRows.rows[0].name,
         email: userRows.rows[0].email,
     }
+
+    err = req.session.error
+    succ = req.session.success
+    // necessary to delete
+    delete req.session.error
+    delete req.session.success
     res.render('user', {
         session: req.session,
         user: user,
@@ -94,7 +121,9 @@ router.get('/:id', async (req, res, next) => {
         newNotif: newNotif,
         funded: fundedRows.rows,
         fundedAmount: fundedAmountRows.rows[0].funded === null ? 0: fundedAmountRows.rows[0].funded,
-        fundingGathered: fundingGatheredRows.rows[0].funding === null ? 0: fundingGatheredRows.rows[0].funding
+        fundingGathered: fundingGatheredRows.rows[0].funding === null ? 0: fundingGatheredRows.rows[0].funding,
+        error: err,
+        success: succ
     })
 })
 
@@ -127,7 +156,8 @@ router.post('/:id', [
 
         // send back if errors
         if (errors.length !== 0) {
-            res.render('user', { session: req.session, error: errors })
+            req.session.error = errors
+            res.redirect('back')
             return
         }
 
@@ -158,22 +188,7 @@ router.post('/:id', [
             console.log(error)
             return
         }
-        const userRows = await db.query('SELECT * FROM USERS u where u.userid=$1', [req.params.id])
-        const projectRows = await db.query('SELECT * FROM projects p where p.owner=$1', [req.params.id])
-        const projects = projectRows.rows
-        const user = {
-            username: userRows.rows[0].username,
-            name: userRows.rows[0].name,
-            email: userRows.rows[0].email,
-        }
-        res.render('user', 
-        { 
-            session: req.session, 
-            success: ['Updated successfully.'],
-            user: user,
-            projects: projects
-
-        })
+        res.redirect('back')
         return
 })
 

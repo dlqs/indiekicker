@@ -12,6 +12,8 @@ router.get('/', (req, res, next) => {
         res.render('sign-in', { warning: ['Your session has timed out. To access user pages, please log in again.']})
     } else if (req.query.loggedout) {
         res.render('sign-in', { success: ['<strong>Logged out!</strong> See you next time.']})
+    } else if (req.query.delete) {
+        res.render('sign-in', { success: ['<strong>Deleted!</strong> Sad to see you go.']})
     } else {
         res.render('sign-in')
     }
