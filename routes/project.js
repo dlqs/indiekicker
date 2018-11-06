@@ -205,6 +205,27 @@ router.post('/:id/fund', async (req, res, next) => {
     res.redirect('/project/' + req.params.id)
 })
 
+// delete only if project has no funding yet
+router.post('/:id/delete', async (req, res, next) => {
+    console.log('hello from delete')
+    let errors = []
+    // check fundings
+    const fundedRows = await db.query('SELECT * from fundings f WHERE f.projectid=$1', [req.params.id])
+
+    if (fundedRows.rows.length > 0) {
+        errors.push('<strong>Error:</strong> project already has funding')
+    }
+
+    // send back if errors
+    if (errors.length !== 0) {
+        req.session.error = errors
+        res.redirect('back')
+        return
+    }
+    await db.query('DELETE FROM projects WHERE projectid=$1', [req.params.id])
+    res.redirect('back')
+})
+
 router.get('/:id', async (req, res, next) => {
     let { rows } = await db.query('WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
                             FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \

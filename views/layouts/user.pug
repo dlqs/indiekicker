@@ -43,7 +43,11 @@ block body
 			p None
 		each project in projects
 			h4
-				a.btn.btn-default(href='/project/'+project.projectid, role='button') <strong>#{project.name}</strong> »
+				p #{project.name}
+				|  
+				a.btn.btn-primary(href='/project/'+project.projectid, role='button') <strong>Visit</strong> »
+				form(method='post', action='/project/'+project.projectid+'/delete')
+					button.btn-sm.btn-danger(type='submit') <strong>Delete</strong> »
 		h4
 			| <strong>$#{fundingGathered}</strong> total gathered fundings from all my projects
 		hr
