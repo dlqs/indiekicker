@@ -207,7 +207,6 @@ router.post('/:id/fund', async (req, res, next) => {
 
 // delete only if project has no funding yet
 router.post('/:id/delete', async (req, res, next) => {
-    console.log('hello from delete')
     let errors = []
     // check fundings
     const fundedRows = await db.query('SELECT * from fundings f WHERE f.projectid=$1', [req.params.id])
@@ -223,6 +222,7 @@ router.post('/:id/delete', async (req, res, next) => {
         return
     }
     await db.query('DELETE FROM projects WHERE projectid=$1', [req.params.id])
+    req.session.success = ['<strong>Success:</strong> Deleted project']
     res.redirect('back')
 })
 

@@ -25,6 +25,13 @@ block body
 			p.lead
 				| Welcome to your profile.
 		
+		br
+		if (error)
+			each message in error
+				+alert-warning(message)
+		if (success)
+			each message in success
+				+alert-success(message)
 		h2 My notifications
 		if (newNotif.length === 0 && oldNotif.length === 0)
 			p None
@@ -81,13 +88,6 @@ block body
 			input#email.form-control(type='text', placeholder=`${user.email}`, name='email')
 			br
 			button.btn.btn-lg.btn-primary.btn-block(type='submit') Confirm change
-			br
-			if (error)
-				each message in error
-					+alert-warning(message)
-			if (success)
-				each message in success
-					+alert-success(message)
 		hr
 		br
 		form(method='post', action='/user/'+user.userid+'/delete')
