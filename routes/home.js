@@ -11,7 +11,7 @@ router.get("/", async (req, res, next) => {
                        SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded, \
                        DATE_PART(\'days\', t.duedate - now()) as daysleft \
                        FROM totalfunding t ' +
-                       'WHERE t.amountfunded < t.amountsought AND now() <= t.duedate AND t.amountfunded/t.amountsought > 0' +
+                       'WHERE t.amountfunded < t.amountsought AND now() <= t.duedate AND t.amountfunded/t.amountsought > 0.5' +
                        ' ORDER BY daysleft ASC LIMIT 4'
     let carouselProjects = await db.query(daysLeftQuery)
 
