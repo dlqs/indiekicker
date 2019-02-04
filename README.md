@@ -78,7 +78,7 @@ exact same state as it was at the time of the dump.
 ```bash
 # From bash
 # To write the current state of your database to a text dump file
-pg_dump -h localhost -U indie --clean indiekicker > indiekicker.dump
+pg_dump -h localhost -U indie --clean --create indiekicker > indiekicker.dump
 
 # To restore a dump file to your database 
 # Caution: *overwrites* the current state of your database with the dump!
