@@ -13,7 +13,16 @@ router.get("/", async (req, res, next) => {
                        FROM totalfunding t ' +
                        'WHERE t.amountfunded < t.amountsought AND now() <= t.duedate AND t.amountfunded/t.amountsought > 0.5' +
                        ' ORDER BY daysleft ASC LIMIT 4'
+    const randomQuery = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
+                       FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
+                       SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded, \
+                       DATE_PART(\'days\', t.duedate - now()) as daysleft \
+                       FROM totalfunding t '
+    
     let carouselProjects = await db.query(daysLeftQuery)
+    if (carouselProjects.rows.length === 0) {
+        carouselProjects = await db.query(randomQuery)
+    }
 
     // projects ordered by highest amountfunded
     const highestFundedQuery = 'WITH totalfunding as (SELECT p.*, COALESCE(SUM(f.amount),0) as amountfunded \
