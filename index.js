@@ -44,6 +44,6 @@ app.use('/project', project)
 app.use('/category', category)
 app.use('/logout', logout)
 
-app.listen(80, 'localhost', () => {
-    console.log('Listening at http://localhost:80')
+app.listen(80, '0.0.0.0', () => {
+    console.log('Listening at http://0.0.0.0:80')
 })
