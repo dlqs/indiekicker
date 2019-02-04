@@ -44,6 +44,6 @@ app.use('/project', project)
 app.use('/category', category)
 app.use('/logout', logout)
 
-app.listen(3000, 'localhost', () => {
-    console.log('Listening at http://localhost:3000')
+app.listen(80, 'localhost', () => {
+    console.log('Listening at http://localhost:80')
 })
