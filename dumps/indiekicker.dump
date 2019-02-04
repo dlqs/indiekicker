@@ -2,12 +2,11 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 10.5
--- Dumped by pg_dump version 10.5
+-- Dumped from database version 9.5.14
+-- Dumped by pg_dump version 9.5.14
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -15,65 +14,26 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
 
-ALTER TABLE ONLY public.queries DROP CONSTRAINT queries_userid_fkey;
-ALTER TABLE ONLY public.projects DROP CONSTRAINT projects_owner_fkey;
-ALTER TABLE ONLY public.notifications DROP CONSTRAINT notifications_userid_fkey;
-ALTER TABLE ONLY public.keywords DROP CONSTRAINT keywords_projectid_fkey;
-ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_userid_fkey;
-ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_projectid_fkey;
-ALTER TABLE ONLY public.users DROP CONSTRAINT users_username_key;
-ALTER TABLE ONLY public.users DROP CONSTRAINT users_pkey;
-ALTER TABLE ONLY public.users DROP CONSTRAINT users_email_key;
-ALTER TABLE ONLY public.queries DROP CONSTRAINT queries_pkey;
-ALTER TABLE ONLY public.projects DROP CONSTRAINT projects_pkey;
-ALTER TABLE ONLY public.notifications DROP CONSTRAINT notifications_pkey;
-ALTER TABLE ONLY public.keywords DROP CONSTRAINT keywords_pkey;
-ALTER TABLE ONLY public.fundings DROP CONSTRAINT fundings_pkey;
-ALTER TABLE public.users ALTER COLUMN userid DROP DEFAULT;
-ALTER TABLE public.queries ALTER COLUMN userid DROP DEFAULT;
-ALTER TABLE public.projects ALTER COLUMN owner DROP DEFAULT;
-ALTER TABLE public.projects ALTER COLUMN projectid DROP DEFAULT;
-ALTER TABLE public.notifications ALTER COLUMN userid DROP DEFAULT;
-ALTER TABLE public.notifications ALTER COLUMN notificationid DROP DEFAULT;
-ALTER TABLE public.keywords ALTER COLUMN projectid DROP DEFAULT;
-ALTER TABLE public.fundings ALTER COLUMN projectid DROP DEFAULT;
-ALTER TABLE public.fundings ALTER COLUMN userid DROP DEFAULT;
-DROP SEQUENCE public.users_userid_seq;
-DROP TABLE public.users;
-DROP SEQUENCE public.queries_userid_seq;
-DROP TABLE public.queries;
-DROP SEQUENCE public.projects_projectid_seq;
-DROP SEQUENCE public.projects_owner_seq;
-DROP TABLE public.projects;
-DROP SEQUENCE public.notifications_userid_seq;
-DROP SEQUENCE public.notifications_notificationid_seq;
-DROP TABLE public.notifications;
-DROP SEQUENCE public.keywords_projectid_seq;
-DROP TABLE public.keywords;
-DROP SEQUENCE public.fundings_userid_seq;
-DROP SEQUENCE public.fundings_projectid_seq;
-DROP TABLE public.fundings;
-DROP FUNCTION public.check_total_funded(project_id integer);
-DROP FUNCTION public.check_funding_sum(user_id integer, project_id integer, amount numeric);
-DROP FUNCTION public.check_amount_sought(project_id integer, amountsought numeric);
-DROP EXTENSION citext;
-DROP EXTENSION plpgsql;
-DROP SCHEMA public;
+DROP DATABASE indiekicker;
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
+-- Name: indiekicker; Type: DATABASE; Schema: -; Owner: postgres
 --
 
-CREATE SCHEMA public;
+CREATE DATABASE indiekicker WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'en_US.UTF-8' LC_CTYPE = 'en_US.UTF-8';
 
 
-ALTER SCHEMA public OWNER TO postgres;
+ALTER DATABASE indiekicker OWNER TO postgres;
 
---
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
---
+\connect indiekicker
 
-COMMENT ON SCHEMA public IS 'standard public schema';
-
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
 
 --
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
@@ -141,23 +101,49 @@ $_$;
 ALTER FUNCTION public.check_funding_sum(user_id integer, project_id integer, amount numeric) OWNER TO indie;
 
 --
--- Name: check_total_funded(integer); Type: FUNCTION; Schema: public; Owner: indie
+-- Name: notify_fully_funded(); Type: FUNCTION; Schema: public; Owner: indie
 --
 
-CREATE FUNCTION public.check_total_funded(project_id integer) RETURNS boolean
+CREATE FUNCTION public.notify_fully_funded() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (SELECT COALESCE(SUM(f.amount),0) FROM fundings f WHERE f.projectid=NEW.projectid) = (SELECT p.amountsought FROM projects p WHERE p.projectid=NEW.projectid) THEN
+    INSERT INTO notifications VALUES (default, (SELECT p2.owner FROM projects p2 WHERE p2.projectid=NEW.projectid), CONCAT('Project ', (SELECT p3.name FROM projects p3 WHERE p3.projectid=NEW.projectid), ' has reached full funding'), default, default);
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION public.notify_fully_funded() OWNER TO indie;
+
+--
+-- Name: notify_funding(); Type: FUNCTION; Schema: public; Owner: indie
+--
+
+CREATE FUNCTION public.notify_funding() RETURNS trigger
     LANGUAGE plpgsql
     AS $_$
-DECLARE passed BOOLEAN;
-BEGIN
-   SELECT (p.amountsought >= COALESCE((SELECT SUM(f.amount) FROM fundings f WHERE f.projectid = $1), 0)) INTO passed FROM projects p
-   WHERE p.projectid = $1;
 
-   RETURN passed;
+BEGIN
+
+    INSERT INTO notifications VALUES (default, (SELECT p2.owner FROM projects p2 WHERE p2.projectid=NEW.projectid),
+    CONCAT(
+(select u.name from users u where u.userid=new.userid),
+' has funded $',
+(select new.amount),
+' to your project: ',
+(select p3.name from projects p3 where p3.projectid=new.projectid)
+),
+    default, default);
+    
+    RETURN NULL;
 END;
 $_$;
 
 
-ALTER FUNCTION public.check_total_funded(project_id integer) OWNER TO indie;
+ALTER FUNCTION public.notify_funding() OWNER TO indie;
 
 SET default_tablespace = '';
 
@@ -184,7 +170,6 @@ ALTER TABLE public.fundings OWNER TO indie;
 --
 
 CREATE SEQUENCE public.fundings_projectid_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -206,7 +191,6 @@ ALTER SEQUENCE public.fundings_projectid_seq OWNED BY public.fundings.projectid;
 --
 
 CREATE SEQUENCE public.fundings_userid_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -240,7 +224,6 @@ ALTER TABLE public.keywords OWNER TO indie;
 --
 
 CREATE SEQUENCE public.keywords_projectid_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -277,7 +260,6 @@ ALTER TABLE public.notifications OWNER TO indie;
 --
 
 CREATE SEQUENCE public.notifications_notificationid_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -299,7 +281,6 @@ ALTER SEQUENCE public.notifications_notificationid_seq OWNED BY public.notificat
 --
 
 CREATE SEQUENCE public.notifications_userid_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -325,10 +306,10 @@ CREATE TABLE public.projects (
     owner integer NOT NULL,
     name character varying(160) NOT NULL,
     description text,
+    category character varying(32) NOT NULL,
     amountsought numeric NOT NULL,
     startdate date NOT NULL,
     duedate date NOT NULL,
-    category public.citext,
     CONSTRAINT afterstart CHECK ((duedate >= startdate)),
     CONSTRAINT check_amount_sought CHECK (public.check_amount_sought(projectid, amountsought)),
     CONSTRAINT nonnegative CHECK ((amountsought > (0)::numeric))
@@ -342,7 +323,6 @@ ALTER TABLE public.projects OWNER TO indie;
 --
 
 CREATE SEQUENCE public.projects_owner_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -364,7 +344,6 @@ ALTER SEQUENCE public.projects_owner_seq OWNED BY public.projects.owner;
 --
 
 CREATE SEQUENCE public.projects_projectid_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -387,7 +366,7 @@ ALTER SEQUENCE public.projects_projectid_seq OWNED BY public.projects.projectid;
 
 CREATE TABLE public.queries (
     userid integer NOT NULL,
-    keyword public.citext NOT NULL
+    keyword character varying(32) NOT NULL
 );
 
 
@@ -398,7 +377,6 @@ ALTER TABLE public.queries OWNER TO indie;
 --
 
 CREATE SEQUENCE public.queries_userid_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -429,8 +407,8 @@ CREATE TABLE public.users (
     createdon timestamp without time zone NOT NULL,
     lastlogin timestamp without time zone,
     sessionid bytea,
-    CONSTRAINT email_max_len CHECK ((length((email)::text) <= 160)),
-    CONSTRAINT username_max_len CHECK ((length((username)::text) <= 32))
+    CONSTRAINT users_email_check CHECK ((length((email)::text) <= 160)),
+    CONSTRAINT users_username_check CHECK ((length((username)::text) <= 32))
 );
 
 
@@ -441,7 +419,6 @@ ALTER TABLE public.users OWNER TO indie;
 --
 
 CREATE SEQUENCE public.users_userid_seq
-    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -459,63 +436,63 @@ ALTER SEQUENCE public.users_userid_seq OWNED BY public.users.userid;
 
 
 --
--- Name: fundings userid; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: userid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.fundings ALTER COLUMN userid SET DEFAULT nextval('public.fundings_userid_seq'::regclass);
 
 
 --
--- Name: fundings projectid; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: projectid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.fundings ALTER COLUMN projectid SET DEFAULT nextval('public.fundings_projectid_seq'::regclass);
 
 
 --
--- Name: keywords projectid; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: projectid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.keywords ALTER COLUMN projectid SET DEFAULT nextval('public.keywords_projectid_seq'::regclass);
 
 
 --
--- Name: notifications notificationid; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: notificationid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.notifications ALTER COLUMN notificationid SET DEFAULT nextval('public.notifications_notificationid_seq'::regclass);
 
 
 --
--- Name: notifications userid; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: userid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.notifications ALTER COLUMN userid SET DEFAULT nextval('public.notifications_userid_seq'::regclass);
 
 
 --
--- Name: projects projectid; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: projectid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.projects ALTER COLUMN projectid SET DEFAULT nextval('public.projects_projectid_seq'::regclass);
 
 
 --
--- Name: projects owner; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: owner; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.projects ALTER COLUMN owner SET DEFAULT nextval('public.projects_owner_seq'::regclass);
 
 
 --
--- Name: queries userid; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: userid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.queries ALTER COLUMN userid SET DEFAULT nextval('public.queries_userid_seq'::regclass);
 
 
 --
--- Name: users userid; Type: DEFAULT; Schema: public; Owner: indie
+-- Name: userid; Type: DEFAULT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.users ALTER COLUMN userid SET DEFAULT nextval('public.users_userid_seq'::regclass);
@@ -526,320 +503,24 @@ ALTER TABLE ONLY public.users ALTER COLUMN userid SET DEFAULT nextval('public.us
 --
 
 COPY public.fundings (userid, projectid, "time", amount) FROM stdin;
-1	1	2018-10-05 01:55:08.092068	100
-1	3	2018-10-05 01:55:15.779748	200
-2	7	2018-10-05 01:55:29.229018	20000
-2	5	2018-10-05 01:55:46.21272	20000
-4	5	2018-10-05 01:55:51.648083	20000
-5	5	2018-10-05 01:56:16.559007	30000
-5	1	2018-10-05 01:56:24.891356	1000
-5	3	2018-10-05 01:56:32.175255	5000
-9	3	2018-10-05 03:47:52.498789	123
-9	6	2018-10-05 03:51:58.980901	123
-9	5	2018-10-05 03:54:43.111295	321
-9	2	2018-10-05 03:55:13.717665	321
-8	2	2018-10-09 03:00:59.820048	49679
-3	62	2018-10-09 18:16:21.069188	50000
-9	59	2018-10-09 19:18:34.659935	123
-9	7	2018-10-09 19:22:12.426717	123
-2	13	2018-10-09 19:22:34.416058	600
-9	13	2018-10-09 19:24:49.383765	82
-9	30	2018-10-09 19:24:59.855512	5555
-9	8	2018-10-09 19:25:09.677316	123
-9	55	2018-10-09 19:25:38.367319	32222
-9	70	2018-10-09 19:25:56.051775	24000
-8	30	2018-10-09 19:26:38.108482	322
-8	55	2018-10-09 19:26:49.905054	455
-15	3	2018-10-09 19:27:28.321586	2000
-15	7	2018-10-09 19:27:41.921262	4000
-15	22	2018-10-09 19:28:06.149011	1200
-15	14	2018-10-09 19:28:31.638617	666
-15	19	2018-10-09 19:28:39.710677	1500
-35	1	2018-10-10 12:52:22.284366	9
-15	62	2018-10-10 13:29:11.878238	5555
-15	12	2018-10-10 13:29:25.861451	1231
-15	1	2018-10-10 13:31:40.952722	1000
-15	6	2018-10-10 13:43:44.596181	20000
-15	72	2018-10-10 13:47:39.37505	90
-37	83	2018-10-10 15:32:41.015289	50
-9	83	2018-10-10 15:33:17.416496	50
-9	31	2018-10-10 16:02:26.930707	12
-9	81	2018-10-23 16:18:09.660482	1
-9	85	2018-10-23 16:55:12.731272	4200
-9	66	2018-10-23 16:57:31.343312	5500
-8	15	2018-10-23 16:59:20.650245	7000
-8	16	2018-10-23 16:59:35.050069	20000
-8	74	2018-10-23 16:59:47.381746	4232
-8	84	2018-10-23 17:00:01.617937	500
-8	86	2018-10-23 17:00:21.042041	6000
-23	27	2018-10-23 17:01:10.553587	1234
-23	69	2018-10-23 17:01:20.440023	2300
-23	81	2018-10-23 17:01:33.940615	1
-23	86	2018-10-23 17:01:50.206021	1234
-23	78	2018-10-23 17:02:04.199905	10000
-23	58	2018-10-23 17:02:14.804501	567
-23	16	2018-10-23 17:02:46.411028	35000
-23	15	2018-10-23 17:03:01.288977	7000
-31	77	2018-10-23 17:04:32.070766	70000
-31	59	2018-10-23 17:05:33.312655	124
-31	78	2018-10-23 17:05:42.367162	60000
-31	6	2018-10-23 17:06:17.19518	40000
-31	30	2018-10-23 17:07:17.187349	45000
-31	19	2018-10-23 17:07:27.895171	45000
-31	90	2018-10-23 17:09:51.363002	11000
-32	72	2018-10-23 17:11:27.277788	90000
-32	86	2018-10-23 17:11:39.77336	10000
-32	40	2018-10-23 17:12:09.863594	70000
-\.
-
-
---
--- Data for Name: keywords; Type: TABLE DATA; Schema: public; Owner: indie
---
-
-COPY public.keywords (projectid, keyword) FROM stdin;
-7	scam
-7	bitcoin
-7	blockchain
-2	elon
-2	sec
-2	car
-3	smartphone
-3	iphone
-5	iphone
-5	smartphone
-5	charger
-5	usb
-6	charger
-6	usb
-4	pen
-4	classic
-3	video
-1	scam
-4	charger
-1	crowdfund
-11	scam
-11	transport
-11	bicycle
-11	speaker
-30	speaker
-31	speaker
-32	speaker
-32	iphone
-32	android
-46	android
-48	android
-19	fox
-22	pretentious
-28	videography
-28	camera
-30	music
-31	music
-32	music
-38	candy
-15	pants
-15	fashion
-15	haute couture
-9	scam
-2	scam
-2	spacex
-12	animals
-12	nature
-12	zoo
-29	android
-29	charger
-48	usb
-31	android
-32	usb
-6	android
-3	android
-7	android
-7	financial
-7	independence
-6	slim
-87	show
-87	discovery
-87	crap
-88	slant
-88	normal
-89	tech
-89	scam
-90	rocket
-90	elon
-\.
-
-
---
--- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: indie
---
-
-COPY public.notifications (notificationid, userid, notification, seen, createdat) FROM stdin;
-2	4	Project was funded	f	2018-10-23 19:26:57.552605
-4	5	Project was funded	f	2018-10-23 19:31:48.70427
-1	1	Project was funded	t	2018-10-23 19:26:57.552605
-3	9	Project was funded	t	2018-10-23 19:26:57.552605
-5	9	Project was funded	t	2018-10-23 20:02:34.732323
-\.
-
-
---
--- Data for Name: projects; Type: TABLE DATA; Schema: public; Owner: indie
---
-
-COPY public.projects (projectid, owner, name, description, amountsought, startdate, duedate, category) FROM stdin;
-1	1	I need money	im pooor help me plz plz lorum ipsum	9999	2018-10-05	2018-10-12	\N
-2	1	$TSLA 4eva	SEC aint got nothing on me pls	50000	2018-10-05	2018-11-09	\N
-3	6	ATOM: A pocket-sized 3-axis smartphone gimbal 	Gimbal doesn’t belong to an easy category that can be quickly developed and put into mass production. It took us another whole year to develop ATOM with a lot of fantastic improvements as you can see. For this revolutionary product, we are very careful on every stage of the R&D and production progress, and have spent a lot of time on testing and evaluation. Right now, we successfully pushed it into production stage, and we are busy working on preparing enough stock in order to ship the orders as soon as we can. 	75000	2018-10-05	2018-11-30	\N
-4	4	KOSMOS Classic Pen	KOSMOS is the first ballpoint pen that employs magnets to expose and retract the tip. Its futuristic design fascinates people around the world and is currently winning all major design awards. A simple shift of the cap unlocks the pen and makes it ready for writing. All parts of KOSMOS are processed from a solid block of high-grade metals, like titanium or aluminium. The result is a durable, perfectly functional writing utensil with the exceedingly rare look of quality.	100000	2018-10-05	2018-12-28	\N
-5	4	SOHOLINE:Crush Proof Wireless charger&USB-C Hub	Soholine is small and light enough to easily keep in your bag at all times. It gives you access to all the ports you need (4K HDMI, microSD, SD, 3 x USB 3.1 and USB-C Power Delivery). even more. You can Upload and backup all your photos & videos from your phone, cameras, external hard drives, and laptop all at the same time! Also, wireless charging your phone, the dongles clutter has been fixed once and for all.	90000	2018-10-05	2019-01-04	\N
-6	5	Charger Pro - World's Thinnest 3-Port USB Charger	Overheating Protection Sensors monitor the temperature of Charger Pro and automatically adjust charging speeds to maintain safe temperatures. Overvoltage Protection Special components inside Charger Pro protect your devices from voltage spikes that could otherwise harm and permanently damage your devices.	65000	2018-10-05	2018-12-14	\N
-7	8	BITCONNECT	Hey hey hey! Hey hey hey! Hey hey hey! Whatsawhatsawhatsawhatsawhatsawhatsawhatsa up Bitconnect! Hey hey hey everybody my name is Carlos Matos and I am coming from New York City, New York and let me tell you guys that I am so excited, I am so happy, I am really so thrilled to be right now sharing this amazing, glorious, super, and exciting moment of my life with all of you guys, and let me tell you that we are really changing the world as we know it, the world is not anymore the way it used to be, mmm mmm, No! No! No! BITCONNECT! Wow! BITCONNECT! We are coming and we are coming in waves! We are starting and we are watching go all over the world! We are pelting the entire world! Let me tell you guys that I started 137 days ago with only $25,610 and right now I am reaching $140,000! Woah woah woah woah woah woah woah Whats up? And let me tell you that I am actually earning around one hun- I mean $1,400 on an every day basis, seven days a week! What‽ I am right now independently, financially independently. I am saying to so many people who say that this was going to be con artist game, that this was gonna be a scammer game, “Hey! You’re gonna lose all your money!” My wife still doesn’t believe in me! I’m telling him “Oh honey, this is real!” “Oh no no no no no, that’s a scam!” And I said “But wait I’m gonna go to the bank and I’m gonna get my bitcoins and I’m actually gonna turn it into dollars, here there right on the table!” “No, that’s money you took from another account!” And I’ll say “What am I gonna do‽” Then I said to myself, “You know what? When I am starting to put $10,000 a day on her, right on her, you know on her table.” Then she’s gonna say “Woah!” Hahaha! Yo yo yo yo yo! “OK that’s real!” Hahahaha! So guys, I’m gonna tell you something. Faith and believe is the one thing that we will need to be able to change the world, and right now I believe that in this room, we have the seed that’s gonna germinate and is going to explode into an amazing opportunity for us to change this entire world. I am so proud, I am so honored, I am so excited to be here right now and let me tell you something, that each and every one of you has the opportunity to become like those amazing people that we know here from Vietnam. Hey hey! My group from Vietnam! Making so much money that it could probably that could probably have a real hard time counting it! Ha ha ha ha ha ha! So guys, let me tell you, I love, BITCONNECT!	350000	2018-10-05	2018-11-30	scam
-8	9	a	a	123	2018-10-08	2018-10-18	others
-9	9	Pastamania	Dont eat here	123	2018-10-08	2018-10-25	others
-10	9	a2	a	123	2018-10-08	2018-10-08	others
-11	9	Obike	O no shit 	123000	2018-10-08	2018-10-08	others
-12	9	Zoo shenanigans	RIP harambe	1234	2018-10-09	2018-10-22	others
-13	2	WWE SUPER SLAM	THAT MAN HAD A FAMILY	682	2018-10-09	2018-11-13	others
-14	10	YAPPAH! Chicken Crisps: Rethinking Snacks, For Good	Welcome to  ¡Yappah! Chicken Crisps, the delicious snack designed to help fight food waste crafted with rescued ingredients. When we started this project, we wanted to make a difference in the way people thought about food waste. We discovered amazing resources and committed partners, and now we’re ready to show off the vegetables of our labor (well, some grains and chicken too). ¡Yappah! Chicken Crisps is more than a great snack: it’s a lifestyle.	40000	2018-10-10	2018-11-10	food
-15	10	la doublure - Le Pantalon au féminin / Pants for women	     Bonjour, je m’appelle Amandine, j’ai 27 ans et je suis Parisienne. Diplômée en management des marques, j’ai travaillé ces 5 dernières années en tant que commerciale pour plusieurs maisons de prêt à porter. Aujourd’hui, je m’appuie sur la richesse de ces expériences pour créer à mon tour. Passionnée par la création et la fabrication d’un vêtement, je lance la doublure	15000	2018-10-10	2018-11-10	clothing
-16	10	Maraña Stop Motion	Tochtli, un abatido conejo se encuentra atrapado en la oscuridad del inmenso bosque, siendo perseguido por un ser del cual lleva toda su vida huyendo, Tochtli tendrá que hacer frente a sus miedos para poder alcanzar la luz que representa su más grande anhelo.Tochtli, a broken rabbit that is found in the darkness of a huge forest, is persecuted for a being from which he has run away all his live, Tochtli will has to face his fears to reach the light that represents his bigger longing	60000	2018-10-10	2018-11-20	film
-17	10	Elephant	ELEPHANT is a meditation for those in a terrorized community. The film demands space for processing the horrors of today and finding the pathways back to the most radical revolution possible living the grace of life, feeling love, and experiencing joy.	20000	2018-10-10	2018-11-30	others
-18	10	THE COLOR OF THE SUN: A film inspired by THE LITTLE PRINCE	To me, the most extraordinary film adaptations are those that manage to transfer written work, as a whole, to film while maintaining the text’s essence completely intact. One day, 3 years ago, while I was talking to my beloved friend, Anouk Rozzo, she mentioned NYC could have been a great city for my film! And she was right!	7880	2018-10-10	2018-11-01	travel
-19	11	OM CITY Season Two	Most importantly we have received so many inspiring messages and emails from around the globe from yogis and non yogis alike saying how much the show resonated, inspired and entertained and how they really want more episodes! So we are ready to go!	50000	2018-09-10	2018-11-01	film
-20	11	Prepd Colors - The Worlds Best Lunchbox	Central to Prepd’s functionality, the modular container system is flexible to your needs. By combining the containers in different configurations you can tailor your lunchbox to suit every type of meal. The containers are made from the highest quality materials, are food-safe and completely leak-proof, allowing you to perfectly store and transport your lunch with confidence.	15000	2018-09-10	2018-11-01	food
-21	11	A minimal everyday watch infused with real wine	The process is pretty intensive, the blueberry wine really proved to be particularly challenging, but after a year of trial & error weve developed a process that turns the wine into a highly rich liquid concentrate that we use to dye the bands. We also offer a natural, black, & white cork band. We do all of this right here in our Philadelphia studio. Dont worry, we dont submerge the cases in wine... we just thought that made for a pretty unique set of photos!	23080	2018-08-10	2018-12-11	accessory
-22	11	California Watch Co.	California Watch Co. timepieces were designed with dimension in mind. From concave subdials to raised applied indices, domed dials to skeleton hands–we focus on the small details that culminate in unique, modern designs. Were a small team with minimal overhead and we ship directly to you which allows us to offer unique, high quality watches at unbelievable pricing. Back us today to save up to 65% off future MSRP.  	20000	2018-08-12	2018-12-21	accessory
-23	11	SAIL: An electric skateboard for everyone 	At Teamgee, we make the best electric board and serve the coolest people. Over the past few years, we have received many favorable comments from previous customers. 	75100	2018-08-16	2018-12-31	sports
-24	11	Keytron - An ultra-slim Wireless Mechanical Keyboard	We believe that the tactile feedback of a mechanical keyboards appeals not just for  gamers, but typists too. With that said, nearly 95% of mechanical keyboards out there are designed only for gamers. We, at Keytron, have spent more than a year to create self-contained switches for easier typing in that Magic Keyboard style. And we are here to offer you the tactile feel of mechanical keyboard with a minimalist design.	40000	2018-10-10	2018-12-11	electronics
-25	12	WalkingPad | The Most Compact, Foldable Exercise Device	 Walking has proven to be a factor in our heart health and general fitness. It doesnt take that much. In fact, 30 minutes a day is enough to show results. Over time, regular walking can significantly improve your physical and mental health.	120000	2018-10-10	2018-12-21	sports
-26	12	SISSI STRAWBERRY - Grow Your Own Fresh Strawberries	Buying strawberries in the supermarket is often very disappointing. Sometimes they look red and juicy in the store, but at the first bite you realize, this is not what you expected - just water without any taste. But even if you were lucky and get tasty strawberries, you dont exactly know where they were grown. Very often they travel hundreds of miles from the field to the store. Not only that they arent fresh any more, traveling your fruits that far is not what you want to do to the environment.	25000	2018-10-10	2018-12-31	food
-27	12	Plant Hero: no more sad plants!	Saving the world, one houseplant at a time!We’re not all blessed with green fingers. That dying basil...wilted shrub...we feel you. No plant lover should cry over one-too-many failed green projects, but no plant should suffer either! How then? We tackle the root cause.	8000	2018-07-10	2018-12-31	environment
-28	12	Lumapod - The Worlds Fastest Tripod	We relentlessly designed Go85 to be as compact and lightweight as humanly possible without compromising on quality or performance. The result is a perfect travel buddy for your smartphone, GoPro and cameras that weigh up to 1kg / 2.2lbs. 	150000	2018-10-10	2018-12-31	film
-29	12	Wireless Charging Dock Inbuilt with Power Bank	MagDock is the new ultimate all-in-one wireless charging dock for all your devices, a standby power bank monitored by IoT technology, and a zip-&-go traveling kit for all the power you need on the go.	20000	2018-10-10	2018-12-01	electronics
-30	12	Amazing speakers BASS	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	55000	2018-07-10	2018-12-10	electronics
-31	13	Amazing speakers TREBLE	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	20000	2018-10-02	2018-12-10	electronics
-32	13	BEATS soul mate	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	140000	2018-07-30	2018-12-10	electronics
-33	13	EXPEREIENCE CRASH A WEDDING	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	135000	2018-10-10	2018-11-10	travel
-34	14	Limousines for everyone	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	70500	2018-07-25	2018-11-10	travel
-35	14	Eating as much as I can	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	1200	2018-10-01	2018-11-10	food
-36	14	FOOD: the essence of life	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	4000	2018-10-06	2018-11-10	food
-37	15	Magazine: Old style, artisinal text	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	60000	2018-10-05	2018-11-10	book
-38	15	Jelly beans remade	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	45500	2018-08-19	2018-11-10	food
-39	15	Buzz Lightyear: MODEL	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	13000	2018-10-09	2018-11-10	art
-40	15	Laptop cooler and charger	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	90000	2018-09-20	2018-11-10	electronics
-41	16	Life sized cardboard cutout of John Cena	Unfortunately, this product is not currently visible.	75123	2017-10-01	2018-05-10	sports
-42	16	Life sized cardboard cutout of TRIPLE H	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	21000	2017-10-02	2018-02-10	sports
-43	16	Life sized cardboard cutoout of Steve Ballmer	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	25000	2017-10-09	2018-01-12	sports
-44	16	DEVELOPERS DEVELOPERS DEVELOPERS	Steve Ballmers memiors	10000	2017-10-21	2018-05-19	book
-45	16	Merlion: a life sized statue in your living room	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	20000	2017-10-31	2018-03-18	environment
-46	16	Amazon Echo	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	35000	2017-10-11	2018-02-15	electronics
-47	17	Amazon Alexa: Echo`s replacement	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	50000	2017-10-21	2018-05-10	electronics
-48	17	Google Home	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	40000	2017-10-01	2018-04-13	electronics
-49	17	Google Home Pad	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	80000	2017-10-01	2018-04-11	electronics
-50	17	Daniel Wellington WATCH: MINIMAL	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	85000	2017-10-05	2018-02-10	accessory
-51	17	Yellow Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	65000	2017-10-19	2018-04-10	food
-52	17	Red Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	67000	2017-10-01	2018-04-10	food
-53	18	Blue Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	95000	2017-08-21	2019-02-01	food
-54	18	Black Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	100000	2017-09-20	2019-03-01	food
-55	18	Cyan Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	120000	2017-02-20	2019-04-01	food
-56	18	Magenta Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	49000	2017-03-20	2019-02-21	food
-57	18	Massage Toy: One for you	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	99999	2017-05-20	2019-03-21	art
-58	18	Portable 3D printer: the PORTAPORTY	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	5000	2017-01-29	2019-02-22	art
-59	18	4D PRINTER: The NextGen 3D	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	50000	2017-06-30	2019-02-21	art
-60	19	Cardboard House: environmentally friendly, cheap	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	500000	2017-08-10	2019-03-21	environment
-61	19	CARDBORD: Affordable housing for software engineers in the Bay Area	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	2000	2017-09-20	2019-01-11	environment
-62	19	Steaks from Kobe (Bryant, not the Japanese city)	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	55555	2017-09-20	2019-02-11	food
-63	19	How can mirrors be real if our eyes arent real	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	60000	2017-04-10	2019-02-11	art
-64	19	MAKE AMERICA GREAT AGAIN: Memoirs of the greatest president of the USA	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	24000	2017-04-20	2019-02-10	book
-65	19	Chartwell Food	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	12000	2017-02-20	2019-02-10	food
-66	20	BYE-CYCLES: Affordable driving in Singapore	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	6000	2017-02-20	2019-05-10	travel
-67	20	Stool: 4 Legged minimalism	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	62000	2017-03-13	2019-04-18	environment
-68	20	Bletchly Plastic Bags	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	33000	2017-03-20	2019-04-11	environment
-69	20	Soft Water: Water for the skin	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	2300	2017-05-20	2019-02-11	food
-70	20	Clear screen | Screen protector, privacy provider	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	26000	2017-08-20	2019-03-01	electronics
-71	21	Fake money: something to throw at would-be robbers	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	94000	2017-08-12	2019-03-01	art
-72	21	Tourbox: Allinone kit	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	102000	2017-08-20	2019-03-02	art
-73	21	Stick Glow	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	103000	2017-08-20	2019-05-04	art
-74	21	Semi automatic tourch: Never blind in the dark again	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	97999	2017-08-20	2019-05-01	electronics
-75	21	dS Game remake Emulator 2001	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	50000	2018-01-01	2018-10-01	game
-76	22	Streetfighter	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	18888	2018-02-01	2018-10-01	game
-77	22	Tesla Model S	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	88888	2018-01-02	2018-10-31	electronics
-78	22	Tesla Model E	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	78888	2018-03-01	2018-10-31	electronics
-79	22	Tesla Model M	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	75000	2018-01-01	2018-10-31	electronics
-80	22	Toyota Prius	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	90000	2018-02-01	2018-10-31	electronics
-81	23	Proton Saga	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	45000	2018-01-10	2018-10-24	electronics
-82	23	Man Man	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	9492	2018-01-10	2018-10-23	art
-83	37	asdas	sadasdas	100	2018-10-10	2018-10-25	art
-84	9	This is so sad	Alexa play despacito	1500	2018-10-23	2018-12-31	electronics
-85	9	Flicks out for Harambe	Harambe movie night is back! Nominate your favorite gorilla-related flick and we'll premier it at the Flicks out for Harambe Festival at the Cincinatti Zoo in March!	4511	2018-10-23	2019-02-12	film
-86	9	WWE SUPERSLAM JUNIOR	Learning from our partners over at MasterChef Junior, FOX sports is bringing you the next best Sunday SUPERSLAM Entertainment Event!	20000	2018-10-23	2018-12-19	sports
-87	2	Ice Road Truckers	Ice road	12000	2018-10-23	2019-03-28	film
-88	2	Find a new slant	This is a normal project	2000	2018-10-23	2019-04-23	scam
-89	2	asdasd	adasd	213	2018-10-23	2018-10-25	accessory
-90	31	Space XXX	A video game based on Elon Musk's latest ventures, Space XXX aims to WOW audiences with its stunning imagery of SPACE exploration and happenings.	12000	2018-10-23	2018-11-27	game
-\.
-
-
---
--- Data for Name: queries; Type: TABLE DATA; Schema: public; Owner: indie
---
-
-COPY public.queries (userid, keyword) FROM stdin;
-36	charger
-9	iphone
-9	usb
-2	harambe
-8	scam
-8	bitcoin
-3	scam
-15	android
-15	usb
-15	charger
-\.
-
-
---
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: indie
---
-
-COPY public.users (userid, name, username, email, passworddigest, admin, createdon, lastlogin, sessionid) FROM stdin;
-4	Harry Potter	hpotter	hp@gmail.com	1ff61e91-349d-3f66-23a8-1ccd3d881fa1	f	2018-10-05 01:32:08.856817	\N	\N
-5	haha	hehe	haha@gmail.com	529ca805-0a00-1807-90cf-88b63468826a	f	2018-10-05 01:32:08.856817	\N	\N
-6	how can dis be	allow	dis@gmail.com	b394126a-0e52-e75f-1e3d-535d0fb0d33c	f	2018-10-05 01:32:08.856817	\N	\N
-7	yo mama	mama	mama@gmail.com	eeafbf4d-9b39-57b1-39da-7b7f2e7f2d4a	f	2018-10-05 01:32:08.856817	\N	\N
-3	admin	admin	admin@haha.com	21232f29-7a57-a5a7-4389-4a0e4a801fc3	t	2018-10-05 01:32:08.856817	2018-10-23 17:42:25.619805	\N
-37	asasd	asdasd	adssad@gmail.com	a3dcb4d2-29de-6fde-0db5-686dee47145d	f	2018-10-10 15:31:43.517899	2018-10-10 15:31:46.679998	\N
-9	aa	aa	aa@gmail.com	4124bc0a-9335-c27f-086f-24ba207a4912	f	2018-10-05 02:10:20.051397	2018-10-23 20:17:43.073279	\\x52484d4346396353467551506536515248494a62555a5470316555714b504e62
-8	Carlos Manos	ilovebitconnect	notscam@gmail.com	22957272-af3f-0034-9de8-d5ddc66603fd	f	2018-10-05 01:47:34.176653	2018-10-23 16:59:06.612646	\N
-2	John Cena	johncena	cena@gmail.com	e8d25b42-08b8-0008-a9e1-5c8698640e85	f	2018-10-05 01:31:59.032199	2018-10-23 14:02:14.252314	\\x457858397237716c4877752d65315a6b4a443338364d6369415649356c7a4165
-23	Haydee Hilderbrand	lookingmosaic	lookingmosaic@gmail.com	b97b994c-f47d-6133-9ae8-b756ab30ab89	f	2018-10-09 16:50:19.071584	2018-10-23 17:00:50.053939	\N
-15	Mila Kunis	weightregistered	weightregistered@gmail.com	fccc519e-1046-1a61-e001-21bb186f3d0b	f	2018-10-09 16:50:19.059006	2018-10-10 13:28:57.685197	\N
-1	hello miao	mojojo	oads@gmail.com	5038dd36-39cc-a0b2-ee02-892666cc3113	f	2018-10-05 01:33:03.377416	2018-10-08 18:17:51.655895	\N
-10	Lebron James	repeatabsolute	repeatabsolute@gmail.com	4d6c68d4-c099-812e-f50d-676292db4dab	f	2018-10-09 16:50:19.047446	\N	\N
-11	Kobe Bryant	decidedispatcher	decidedispatcher@gmail.com	ec49e486-08b7-801f-dd8b-0b3a4900b754	f	2018-10-09 16:50:19.054179	\N	\N
-12	Derrick Rose	aclman	aclman@gmail.com	abd8586b-44f4-fcac-3da5-cd65d36c95ea	f	2018-10-09 16:50:19.055369	\N	\N
-13	The Undertaker	codaselfish	codaselfish@gmail.com	9a4d144f-170b-db2a-0b56-5e76981c61d4	f	2018-10-09 16:50:19.056586	\N	\N
-14	Captain America	farouttenuous	farouttenuous@gmail.com	8b68d534-0859-92c3-a2fb-9de8eefa524e	f	2018-10-09 16:50:19.057959	\N	\N
-16	Ashton Kutcher	shieldhicken	shieldhicken@gmail.com	123dcfc7-a1d5-9c4d-cb7f-09d0df4a9b03	f	2018-10-09 16:50:19.060339	\N	\N
-17	Shaquille Oneal	singeequality	singeequality@gmail.com	c40bbd61-d1ab-9cc9-b7b2-690629b95884	f	2018-10-09 16:50:19.061533	\N	\N
-18	John Smith	elatedflap	elatedflap@gmail.com	c1c12590-f2e3-34fa-5bfe-ee6511ace83d	f	2018-10-09 16:50:19.062847	\N	\N
-19	Walter White	peasclausius	peasclausius@gmail.com	b90e6592-f5b7-1d3b-e4f8-f2a435b8e237	f	2018-10-09 16:50:19.064455	\N	\N
-20	Space Pirates	graterdropbox	graterdropbox@gmail.com	4316b470-099e-7462-601f-28460497c660	f	2018-10-09 16:50:19.066104	\N	\N
-21	Thad Assman	gregariouschristie	gregariouschristie@gmail.com	28b13995-5ff8-7ef3-fbbc-fbe2241951e2	f	2018-10-09 16:50:19.068049	\N	\N
-22	Sharoof O Noof	exactingflop	exactingflop@gmail.com	e3dc5375-9c65-1ce7-a3df-101b5dc1b58c	f	2018-10-09 16:50:19.06991	\N	\N
-24	Kimberly Testerman	lizarddwarf	lizarddwarf@gmail.com	7b6a2eaf-2d7e-bbb5-f72d-8525c9fba31e	f	2018-10-09 16:50:19.073176	\N	\N
-25	Treva Bueche	thoinedstatics	thoinedstatics@gmail.com	9306c3c6-9bec-4e76-7eec-2063cb898cf8	f	2018-10-09 16:50:19.07493	\N	\N
-26	Hollie Gainey	maddeningfiery	maddeningfiery@gmail.com	00f08003-ebfc-f51f-e407-787d6d84c1ef	f	2018-10-09 16:50:19.076889	\N	\N
-27	Nana Mikesell	warkened	warkened@gmail.com	1f586a75-7888-8b6d-ddb1-1b46092d2a0a	f	2018-10-09 16:50:19.079096	\N	\N
-28	Clare Crown	pingglig	pingglig@gmail.com	3bc68955-e57d-1664-530b-7f0ac5ea0e28	f	2018-10-09 16:50:19.080904	\N	\N
-29	Ami Bohl	shieldlo	shieldlo@gmail.com	ba1c2082-59f1-4794-617e-70c3efe92994	f	2018-10-09 16:50:19.082825	\N	\N
-30	Marquetta Raab	headchefspeasy	headchefspeasy@gmail.com	3f4fc72c-8553-59ef-d713-588a26ec50fa	f	2018-10-09 16:50:19.084784	\N	\N
-33	Making Beef	checkdela	checkdela@gmail.com	5d640ed6-7a16-ddae-3869-6d06152f5873	f	2018-10-09 16:50:19.107181	\N	\N
-34	Harambe	decibelmiscuits	decibelmiscuits@gmail.com	07be10d7-19ab-e3df-9e34-5fb36bc332a1	f	2018-10-09 16:51:14.118644	\N	\N
-35	slim shady	richard	asdf123@gmail.com	a8f5f167-f44f-4964-e6c9-98dee827110c	f	2018-10-10 12:51:06.103479	2018-10-10 12:51:13.714584	\\x6e7a556377497a435851716e6f54346d504459586c357444534157684d2d6d36
-36	Tzer Bin	tzerbin	tzerbin18@gmail.com	f5031d39-5825-a6c4-ce8b-3f31a7a3fd75	f	2018-10-10 13:49:19.387305	2018-10-10 13:49:26.412719	\N
-31	Elon Musk	taxonomyperihelion	taxonomyperihelion@gmail.com	f6c3adce-5a97-71a5-6332-ddf5b8b791cb	f	2018-10-09 16:50:19.08678	2018-10-23 17:04:11.82185	\N
-32	Shareef O Neef	Maquetta	Maquetta@gmail.com	e9c53da9-5022-b273-5f0e-e469f3adf3a0	f	2018-10-09 16:50:19.105484	2018-10-23 17:10:56.953578	\N
+23	12	2019-02-04 04:55:37.152202	500
+23	15	2019-02-04 04:55:41.402129	500
+23	45	2019-02-04 04:55:46.565428	5000
+23	13	2019-02-04 04:55:49.76662	5000
+23	16	2019-02-04 04:55:52.296343	5000
+23	9	2019-02-04 04:55:55.162834	5000
+23	69	2019-02-04 04:55:58.37509	5000
+23	40	2019-02-04 04:56:14.516884	4000
+2	2	2019-02-04 05:02:34.833633	15000
+2	3	2019-02-04 05:02:51.673443	60000
+2	6	2019-02-04 05:03:00.87568	50000
+2	5	2019-02-04 05:03:11.243894	7880
+2	7	2019-02-04 05:04:38.96804	14000
+2	8	2019-02-04 05:04:49.815268	22000
+2	9	2019-02-04 05:05:09.903685	14000
+2	10	2019-02-04 05:05:25.117302	74000
+2	11	2019-02-04 05:05:45.579328	39000
+26	80	2019-02-04 05:19:08.662885	123
 \.
 
 
@@ -858,6 +539,14 @@ SELECT pg_catalog.setval('public.fundings_userid_seq', 1, false);
 
 
 --
+-- Data for Name: keywords; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.keywords (projectid, keyword) FROM stdin;
+\.
+
+
+--
 -- Name: keywords_projectid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
 --
 
@@ -865,10 +554,41 @@ SELECT pg_catalog.setval('public.keywords_projectid_seq', 1, false);
 
 
 --
+-- Data for Name: notifications; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.notifications (notificationid, userid, notification, seen, createdat) FROM stdin;
+1	12	Elon Musk has funded $500 to your project: WalkingPad | The Most Compact, Foldable Exercise Device	f	2019-02-04 04:55:37.152202
+2	12	Elon Musk has funded $500 to your project: Lumapod - The Worlds Fastest Tripod	f	2019-02-04 04:55:41.402129
+3	18	Project Portable 3D printer: the PORTAPORTY has reached full funding	f	2019-02-04 04:55:46.565428
+4	18	Elon Musk has funded $5000 to your project: Portable 3D printer: the PORTAPORTY	f	2019-02-04 04:55:46.565428
+5	12	Elon Musk has funded $5000 to your project: SISSI STRAWBERRY - Grow Your Own Fresh Strawberries	f	2019-02-04 04:55:49.76662
+6	12	Elon Musk has funded $5000 to your project: Wireless Charging Dock Inbuilt with Power Bank	f	2019-02-04 04:55:52.296343
+7	11	Elon Musk has funded $5000 to your project: California Watch Co.	f	2019-02-04 04:55:55.162834
+8	23	Elon Musk has funded $5000 to your project: Man Man	f	2019-02-04 04:55:58.37509
+9	18	Elon Musk has funded $4000 to your project: Blue Mountain Coffee	f	2019-02-04 04:56:14.516884
+10	10	Project la doublure - Le Pantalon au féminin / Pants for women has reached full funding	f	2019-02-04 05:02:34.833633
+11	10	Kobe Bryant has funded $15000 to your project: la doublure - Le Pantalon au féminin / Pants for women	f	2019-02-04 05:02:34.833633
+12	10	Project Maraña Stop Motion has reached full funding	f	2019-02-04 05:02:51.673443
+13	10	Kobe Bryant has funded $60000 to your project: Maraña Stop Motion	f	2019-02-04 05:02:51.673443
+14	11	Project OM CITY Season Two has reached full funding	f	2019-02-04 05:03:00.87568
+15	11	Kobe Bryant has funded $50000 to your project: OM CITY Season Two	f	2019-02-04 05:03:00.87568
+16	10	Project THE COLOR OF THE SUN: A film inspired by THE LITTLE PRINCE has reached full funding	f	2019-02-04 05:03:11.243894
+17	10	Kobe Bryant has funded $7880 to your project: THE COLOR OF THE SUN: A film inspired by THE LITTLE PRINCE	f	2019-02-04 05:03:11.243894
+18	11	Kobe Bryant has funded $14000 to your project: Prepd Colors - The Worlds Best Lunchbox	f	2019-02-04 05:04:38.96804
+19	11	Kobe Bryant has funded $22000 to your project: A minimal everyday watch infused with real wine	f	2019-02-04 05:04:49.815268
+20	11	Kobe Bryant has funded $14000 to your project: California Watch Co.	f	2019-02-04 05:05:09.903685
+21	11	Kobe Bryant has funded $74000 to your project: SAIL: An electric skateboard for everyone 	f	2019-02-04 05:05:25.117302
+22	11	Kobe Bryant has funded $39000 to your project: Keytron - An ultra-slim Wireless Mechanical Keyboard	f	2019-02-04 05:05:45.579328
+23	11	donald has funded $123 to your project: Keytron - An ultra-slim Wireless Mechanical Keyboard	f	2019-02-04 05:19:08.662885
+\.
+
+
+--
 -- Name: notifications_notificationid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
 --
 
-SELECT pg_catalog.setval('public.notifications_notificationid_seq', 5, true);
+SELECT pg_catalog.setval('public.notifications_notificationid_seq', 23, true);
 
 
 --
@@ -876,6 +596,97 @@ SELECT pg_catalog.setval('public.notifications_notificationid_seq', 5, true);
 --
 
 SELECT pg_catalog.setval('public.notifications_userid_seq', 1, false);
+
+
+--
+-- Data for Name: projects; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.projects (projectid, owner, name, description, category, amountsought, startdate, duedate) FROM stdin;
+1	10	YAPPAH! Chicken Crisps: Rethinking Snacks, For Good	Welcome to  ¡Yappah! Chicken Crisps, the delicious snack designed to help fight food waste crafted with rescued ingredients. When we started this project, we wanted to make a difference in the way people thought about food waste. We discovered amazing resources and committed partners, and now we’re ready to show off the vegetables of our labor (well, some grains and chicken too). ¡Yappah! Chicken Crisps is more than a great snack: it’s a lifestyle.	food	40000	2018-10-10	2018-11-10
+2	10	la doublure - Le Pantalon au féminin / Pants for women	     Bonjour, je m’appelle Amandine, j’ai 27 ans et je suis Parisienne. Diplômée en management des marques, j’ai travaillé ces 5 dernières années en tant que commerciale pour plusieurs maisons de prêt à porter. Aujourd’hui, je m’appuie sur la richesse de ces expériences pour créer à mon tour. Passionnée par la création et la fabrication d’un vêtement, je lance la doublure	clothing	15000	2018-10-10	2018-11-10
+3	10	Maraña Stop Motion	Tochtli, un abatido conejo se encuentra atrapado en la oscuridad del inmenso bosque, siendo perseguido por un ser del cual lleva toda su vida huyendo, Tochtli tendrá que hacer frente a sus miedos para poder alcanzar la luz que representa su más grande anhelo.Tochtli, a broken rabbit that is found in the darkness of a huge forest, is persecuted for a being from which he has run away all his live, Tochtli will has to face his fears to reach the light that represents his bigger longing	film	60000	2018-10-10	2018-11-20
+4	10	Elephant	ELEPHANT is a meditation for those in a terrorized community. The film demands space for processing the horrors of today and finding the pathways back to the most radical revolution possible living the grace of life, feeling love, and experiencing joy.	others	20000	2018-10-10	2018-11-30
+5	10	THE COLOR OF THE SUN: A film inspired by THE LITTLE PRINCE	To me, the most extraordinary film adaptations are those that manage to transfer written work, as a whole, to film while maintaining the text’s essence completely intact. One day, 3 years ago, while I was talking to my beloved friend, Anouk Rozzo, she mentioned NYC could have been a great city for my film! And she was right!	travel	7880	2018-10-10	2018-11-01
+6	11	OM CITY Season Two	Most importantly we have received so many inspiring messages and emails from around the globe from yogis and non yogis alike saying how much the show resonated, inspired and entertained and how they really want more episodes! So we are ready to go!	film	50000	2018-09-10	2018-11-01
+7	11	Prepd Colors - The Worlds Best Lunchbox	Central to Prepd’s functionality, the modular container system is flexible to your needs. By combining the containers in different configurations you can tailor your lunchbox to suit every type of meal. The containers are made from the highest quality materials, are food-safe and completely leak-proof, allowing you to perfectly store and transport your lunch with confidence.	food	15000	2018-09-10	2018-11-01
+8	11	A minimal everyday watch infused with real wine	The process is pretty intensive, the blueberry wine really proved to be particularly challenging, but after a year of trial & error weve developed a process that turns the wine into a highly rich liquid concentrate that we use to dye the bands. We also offer a natural, black, & white cork band. We do all of this right here in our Philadelphia studio. Dont worry, we dont submerge the cases in wine... we just thought that made for a pretty unique set of photos!	accessory	23080	2018-08-10	2018-12-11
+9	11	California Watch Co.	California Watch Co. timepieces were designed with dimension in mind. From concave subdials to raised applied indices, domed dials to skeleton hands–we focus on the small details that culminate in unique, modern designs. Were a small team with minimal overhead and we ship directly to you which allows us to offer unique, high quality watches at unbelievable pricing. Back us today to save up to 65% off future MSRP.  	accessory	20000	2018-08-12	2018-12-21
+10	11	SAIL: An electric skateboard for everyone 	At Teamgee, we make the best electric board and serve the coolest people. Over the past few years, we have received many favorable comments from previous customers. 	sports	75100	2018-08-16	2018-12-31
+11	11	Keytron - An ultra-slim Wireless Mechanical Keyboard	We believe that the tactile feedback of a mechanical keyboards appeals not just for  gamers, but typists too. With that said, nearly 95% of mechanical keyboards out there are designed only for gamers. We, at Keytron, have spent more than a year to create self-contained switches for easier typing in that Magic Keyboard style. And we are here to offer you the tactile feel of mechanical keyboard with a minimalist design.	electronics	40000	2018-10-10	2018-12-11
+12	12	WalkingPad | The Most Compact, Foldable Exercise Device	 Walking has proven to be a factor in our heart health and general fitness. It doesnt take that much. In fact, 30 minutes a day is enough to show results. Over time, regular walking can significantly improve your physical and mental health.	sports	120000	2018-10-10	2018-12-21
+13	12	SISSI STRAWBERRY - Grow Your Own Fresh Strawberries	Buying strawberries in the supermarket is often very disappointing. Sometimes they look red and juicy in the store, but at the first bite you realize, this is not what you expected - just water without any taste. But even if you were lucky and get tasty strawberries, you dont exactly know where they were grown. Very often they travel hundreds of miles from the field to the store. Not only that they arent fresh any more, traveling your fruits that far is not what you want to do to the environment.	food	25000	2018-10-10	2018-12-31
+14	12	Plant Hero: no more sad plants!	Saving the world, one houseplant at a time!We’re not all blessed with green fingers. That dying basil...wilted shrub...we feel you. No plant lover should cry over one-too-many failed green projects, but no plant should suffer either! How then? We tackle the root cause.	environment	8000	2018-07-10	2018-12-31
+15	12	Lumapod - The Worlds Fastest Tripod	We relentlessly designed Go85 to be as compact and lightweight as humanly possible without compromising on quality or performance. The result is a perfect travel buddy for your smartphone, GoPro and cameras that weigh up to 1kg / 2.2lbs. 	film	150000	2018-10-10	2018-12-31
+16	12	Wireless Charging Dock Inbuilt with Power Bank	MagDock is the new ultimate all-in-one wireless charging dock for all your devices, a standby power bank monitored by IoT technology, and a zip-&-go traveling kit for all the power you need on the go.	electronics	20000	2018-10-10	2018-12-01
+17	12	Amazing speakers BASS	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	electronics	55000	2018-07-10	2018-12-10
+18	13	Amazing speakers TREBLE	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	electronics	20000	2018-10-02	2018-12-10
+19	13	BEATS soul mate	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	electronics	140000	2018-07-30	2018-12-10
+20	13	EXPEREIENCE CRASH A WEDDING	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	travel	135000	2018-10-10	2018-11-10
+21	14	Limousines for everyone	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	travel	70500	2018-07-25	2018-11-10
+22	14	Eating as much as I can	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	1200	2018-10-01	2018-11-10
+23	14	FOOD: the essence of life	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	4000	2018-10-06	2018-11-10
+24	15	Magazine: Old style, artisinal text	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	book	60000	2018-10-05	2018-11-10
+25	15	Jelly beans remade	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	45500	2018-08-19	2018-11-10
+26	15	Buzz Lightyear: MODEL	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	art	13000	2018-10-09	2018-11-10
+27	15	Laptop cooler and charger	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	electronics	90000	2018-09-20	2018-11-10
+28	16	Life sized cardboard cutout of John Cena	Unfortunately, this product is not currently visible.	sports	75123	2017-10-01	2018-05-10
+29	16	Life sized cardboard cutout of TRIPLE H	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	sports	21000	2017-10-02	2018-02-10
+30	16	Life sized cardboard cutoout of Steve Ballmer	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	sports	25000	2017-10-09	2018-01-12
+31	16	DEVELOPERS DEVELOPERS DEVELOPERS	Steve Ballmers memiors	book	10000	2017-10-21	2018-05-19
+32	16	Merlion: a life sized statue in your living room	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	environment	20000	2017-10-31	2018-03-18
+33	16	Amazon Echo	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	electronics	35000	2017-10-11	2018-02-15
+34	17	Amazon Alexa: Echo`s replacement	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	electronics	50000	2017-10-21	2018-05-10
+35	17	Google Home	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	electronics	40000	2017-10-01	2018-04-13
+36	17	Google Home Pad	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	electronics	80000	2017-10-01	2018-04-11
+37	17	Daniel Wellington WATCH: MINIMAL	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	accessory	85000	2017-10-05	2018-02-10
+38	17	Yellow Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	65000	2017-10-19	2018-04-10
+39	17	Red Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	67000	2017-10-01	2018-04-10
+40	18	Blue Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	95000	2017-08-21	2019-02-01
+41	18	Black Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	100000	2017-09-20	2019-03-01
+42	18	Cyan Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	120000	2017-02-20	2019-04-01
+43	18	Magenta Mountain Coffee	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	food	49000	2017-03-20	2019-02-21
+44	18	Massage Toy: One for you	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	art	99999	2017-05-20	2019-03-21
+45	18	Portable 3D printer: the PORTAPORTY	This is the best, most innovative product our team here at Apple have had so far. Our success in creating this fantastic product spreads far and wide, into places like Antartica and Africa even. What does this product even mean? Is it a new step for humanity? We think so. Thats why you must buy this product now.	art	5000	2017-01-29	2019-02-22
+46	18	4D PRINTER: The NextGen 3D	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	art	50000	2017-06-30	2019-02-21
+47	19	Cardboard House: environmentally friendly, cheap	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	environment	500000	2017-08-10	2019-03-21
+48	19	CARDBORD: Affordable housing for software engineers in the Bay Area	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	environment	2000	2017-09-20	2019-01-11
+49	19	Steaks from Kobe (Bryant, not the Japanese city)	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	food	55555	2017-09-20	2019-02-11
+50	19	How can mirrors be real if our eyes arent real	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	art	60000	2017-04-10	2019-02-11
+51	19	MAKE AMERICA GREAT AGAIN: Memoirs of the greatest president of the USA	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	book	24000	2017-04-20	2019-02-10
+52	19	Chartwell Food	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	food	12000	2017-02-20	2019-02-10
+53	20	BYE-CYCLES: Affordable driving in Singapore	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	travel	6000	2017-02-20	2019-05-10
+54	20	Stool: 4 Legged minimalism	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	environment	62000	2017-03-13	2019-04-18
+55	20	Bletchly Plastic Bags	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	environment	33000	2017-03-20	2019-04-11
+56	20	Soft Water: Water for the skin	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	food	2300	2017-05-20	2019-02-11
+57	20	Clear screen | Screen protector, privacy provider	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	electronics	26000	2017-08-20	2019-03-01
+58	21	Fake money: something to throw at would-be robbers	Our sensible policies toward product manufacturing have made us one of the most sustainable production operations in the planet. We save nearly 20000 trees in the Amazon forest per week. All of our employees drive Priuses. Green, green policies all the way. Saves us money too!	art	94000	2017-08-12	2019-03-01
+59	21	Tourbox: Allinone kit	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	art	102000	2017-08-20	2019-03-02
+60	21	Stick Glow	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	art	103000	2017-08-20	2019-05-04
+61	21	Semi automatic tourch: Never blind in the dark again	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	electronics	97999	2017-08-20	2019-05-01
+62	21	dS Game remake Emulator 2001	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	game	50000	2018-01-01	2018-10-01
+63	22	Streetfighter	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	game	18888	2018-02-01	2018-10-01
+64	22	Tesla Model S	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	electronics	88888	2018-01-02	2018-10-31
+65	22	Tesla Model E	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	electronics	78888	2018-03-01	2018-10-31
+66	22	Tesla Model M	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	electronics	75000	2018-01-01	2018-10-31
+67	22	Toyota Prius	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	electronics	90000	2018-02-01	2018-10-31
+68	23	Proton Saga	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	electronics	45000	2018-01-10	2018-10-24
+69	23	Man Man	Technology gathered a group of tech engineers and designers working together to make innovative products for designers and creators. We found a lack of better products for designers other than traditional keyboard and mouse. So we decided it to do it our own way. After several years of research and development, we created this new tool that can enhance work efficiency and free your time for creativity. 	art	9492	2018-01-10	2018-10-23
+70	10	YAPPAH! Chicken Crisps: Rethinking Snacks, For Good	Welcome to  ¡Yappah! Chicken Crisps, the delicious snack designed to help fight food waste crafted with rescued ingredients. When we started this project, we wanted to make a difference in the way people thought about food waste. We discovered amazing resources and committed partners, and now we’re ready to show off the vegetables of our labor (well, some grains and chicken too). ¡Yappah! Chicken Crisps is more than a great snack: it’s a lifestyle.	food	40000	2019-02-04	2019-11-10
+71	10	la doublure - Le Pantalon au féminin / Pants for women	     Bonjour, je m’appelle Amandine, j’ai 27 ans et je suis Parisienne. Diplômée en management des marques, j’ai travaillé ces 5 dernières années en tant que commerciale pour plusieurs maisons de prêt à porter. Aujourd’hui, je m’appuie sur la richesse de ces expériences pour créer à mon tour. Passionnée par la création et la fabrication d’un vêtement, je lance la doublure	clothing	15000	2019-02-04	2019-11-10
+72	10	Maraña Stop Motion	Tochtli, un abatido conejo se encuentra atrapado en la oscuridad del inmenso bosque, siendo perseguido por un ser del cual lleva toda su vida huyendo, Tochtli tendrá que hacer frente a sus miedos para poder alcanzar la luz que representa su más grande anhelo.Tochtli, a broken rabbit that is found in the darkness of a huge forest, is persecuted for a being from which he has run away all his live, Tochtli will has to face his fears to reach the light that represents his bigger longing	film	60000	2018-10-10	2020-11-20
+73	10	Elephant	ELEPHANT is a meditation for those in a terrorized community. The film demands space for processing the horrors of today and finding the pathways back to the most radical revolution possible living the grace of life, feeling love, and experiencing joy.	others	20000	2018-10-10	2019-11-30
+74	10	THE COLOR OF THE SUN: A film inspired by THE LITTLE PRINCE	To me, the most extraordinary film adaptations are those that manage to transfer written work, as a whole, to film while maintaining the text’s essence completely intact. One day, 3 years ago, while I was talking to my beloved friend, Anouk Rozzo, she mentioned NYC could have been a great city for my film! And she was right!	travel	7880	2019-02-04	2019-11-01
+75	11	OM CITY Season Two	Most importantly we have received so many inspiring messages and emails from around the globe from yogis and non yogis alike saying how much the show resonated, inspired and entertained and how they really want more episodes! So we are ready to go!	film	50000	2018-09-10	2019-11-01
+76	11	Prepd Colors - The Worlds Best Lunchbox	Central to Prepd’s functionality, the modular container system is flexible to your needs. By combining the containers in different configurations you can tailor your lunchbox to suit every type of meal. The containers are made from the highest quality materials, are food-safe and completely leak-proof, allowing you to perfectly store and transport your lunch with confidence.	food	15000	2018-09-10	2020-11-01
+77	11	A minimal everyday watch infused with real wine	The process is pretty intensive, the blueberry wine really proved to be particularly challenging, but after a year of trial & error weve developed a process that turns the wine into a highly rich liquid concentrate that we use to dye the bands. We also offer a natural, black, & white cork band. We do all of this right here in our Philadelphia studio. Dont worry, we dont submerge the cases in wine... we just thought that made for a pretty unique set of photos!	accessory	23080	2018-08-10	2020-12-11
+78	11	California Watch Co.	California Watch Co. timepieces were designed with dimension in mind. From concave subdials to raised applied indices, domed dials to skeleton hands–we focus on the small details that culminate in unique, modern designs. Were a small team with minimal overhead and we ship directly to you which allows us to offer unique, high quality watches at unbelievable pricing. Back us today to save up to 65% off future MSRP.  	accessory	20000	2018-08-12	2020-12-21
+79	11	SAIL: An electric skateboard for everyone 	At Teamgee, we make the best electric board and serve the coolest people. Over the past few years, we have received many favorable comments from previous customers. 	sports	75100	2019-02-04	2020-12-31
+80	11	Keytron - An ultra-slim Wireless Mechanical Keyboard	We believe that the tactile feedback of a mechanical keyboards appeals not just for  gamers, but typists too. With that said, nearly 95% of mechanical keyboards out there are designed only for gamers. We, at Keytron, have spent more than a year to create self-contained switches for easier typing in that Magic Keyboard style. And we are here to offer you the tactile feel of mechanical keyboard with a minimalist design.	electronics	40000	2019-02-04	2020-12-11
+81	12	WalkingPad | The Most Compact, Foldable Exercise Device	 Walking has proven to be a factor in our heart health and general fitness. It doesnt take that much. In fact, 30 minutes a day is enough to show results. Over time, regular walking can significantly improve your physical and mental health.	sports	120000	2019-02-04	2019-12-21
+82	12	SISSI STRAWBERRY - Grow Your Own Fresh Strawberries	Buying strawberries in the supermarket is often very disappointing. Sometimes they look red and juicy in the store, but at the first bite you realize, this is not what you expected - just water without any taste. But even if you were lucky and get tasty strawberries, you dont exactly know where they were grown. Very often they travel hundreds of miles from the field to the store. Not only that they arent fresh any more, traveling your fruits that far is not what you want to do to the environment.	food	25000	2019-02-04	2019-12-31
+83	12	Plant Hero: no more sad plants!	Saving the world, one houseplant at a time!We’re not all blessed with green fingers. That dying basil...wilted shrub...we feel you. No plant lover should cry over one-too-many failed green projects, but no plant should suffer either! How then? We tackle the root cause.	environment	8000	2018-07-10	2019-12-31
+\.
 
 
 --
@@ -889,7 +700,15 @@ SELECT pg_catalog.setval('public.projects_owner_seq', 1, false);
 -- Name: projects_projectid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
 --
 
-SELECT pg_catalog.setval('public.projects_projectid_seq', 90, true);
+SELECT pg_catalog.setval('public.projects_projectid_seq', 83, true);
+
+
+--
+-- Data for Name: queries; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.queries (userid, keyword) FROM stdin;
+\.
 
 
 --
@@ -900,14 +719,48 @@ SELECT pg_catalog.setval('public.queries_userid_seq', 1, false);
 
 
 --
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: indie
+--
+
+COPY public.users (userid, name, username, email, passworddigest, admin, createdon, lastlogin, sessionid) FROM stdin;
+1	Lebron James	repeatabsolute	repeatabsolute@gmail.com	4d6c68d4-c099-812e-f50d-676292db4dab	f	2019-02-04 04:24:38.744989	\N	\N
+2	Kobe Bryant	decidedispatcher	decidedispatcher@gmail.com	ec49e486-08b7-801f-dd8b-0b3a4900b754	f	2019-02-04 04:24:38.747323	\N	\N
+3	Derrick Rose	aclman	aclman@gmail.com	abd8586b-44f4-fcac-3da5-cd65d36c95ea	f	2019-02-04 04:24:38.74834	\N	\N
+4	The Undertaker	codaselfish	codaselfish@gmail.com	9a4d144f-170b-db2a-0b56-5e76981c61d4	f	2019-02-04 04:24:38.749215	\N	\N
+5	Captain America	farouttenuous	farouttenuous@gmail.com	8b68d534-0859-92c3-a2fb-9de8eefa524e	f	2019-02-04 04:24:38.750416	\N	\N
+6	Mila Kunis	weightregistered	weightregistered@gmail.com	fccc519e-1046-1a61-e001-21bb186f3d0b	f	2019-02-04 04:24:38.751299	\N	\N
+7	Ashton Kutcher	shieldhicken	shieldhicken@gmail.com	123dcfc7-a1d5-9c4d-cb7f-09d0df4a9b03	f	2019-02-04 04:24:38.752114	\N	\N
+8	Shaquille Oneal	singeequality	singeequality@gmail.com	c40bbd61-d1ab-9cc9-b7b2-690629b95884	f	2019-02-04 04:24:38.753115	\N	\N
+9	Harambe	decibelmiscuits	decibelmiscuits@gmail.com	07be10d7-19ab-e3df-9e34-5fb36bc332a1	f	2019-02-04 04:24:38.753959	\N	\N
+10	John Smith	elatedflap	elatedflap@gmail.com	c1c12590-f2e3-34fa-5bfe-ee6511ace83d	f	2019-02-04 04:24:38.754993	\N	\N
+11	Walter White	peasclausius	peasclausius@gmail.com	b90e6592-f5b7-1d3b-e4f8-f2a435b8e237	f	2019-02-04 04:24:38.755845	\N	\N
+12	Space Pirates	graterdropbox	graterdropbox@gmail.com	4316b470-099e-7462-601f-28460497c660	f	2019-02-04 04:24:38.756672	\N	\N
+13	Thad Assman	gregariouschristie	gregariouschristie@gmail.com	28b13995-5ff8-7ef3-fbbc-fbe2241951e2	f	2019-02-04 04:24:38.757533	\N	\N
+14	Sharoof O Noof	exactingflop	exactingflop@gmail.com	e3dc5375-9c65-1ce7-a3df-101b5dc1b58c	f	2019-02-04 04:24:38.758305	\N	\N
+15	Haydee Hilderbrand	lookingmosaic	lookingmosaic@gmail.com	b97b994c-f47d-6133-9ae8-b756ab30ab89	f	2019-02-04 04:24:38.759094	\N	\N
+16	Kimberly Testerman	lizarddwarf	lizarddwarf@gmail.com	7b6a2eaf-2d7e-bbb5-f72d-8525c9fba31e	f	2019-02-04 04:24:38.759887	\N	\N
+17	Treva Bueche	thoinedstatics	thoinedstatics@gmail.com	9306c3c6-9bec-4e76-7eec-2063cb898cf8	f	2019-02-04 04:24:38.760729	\N	\N
+18	Hollie Gainey	maddeningfiery	maddeningfiery@gmail.com	00f08003-ebfc-f51f-e407-787d6d84c1ef	f	2019-02-04 04:24:38.761591	\N	\N
+19	Nana Mikesell	warkened	warkened@gmail.com	1f586a75-7888-8b6d-ddb1-1b46092d2a0a	f	2019-02-04 04:24:38.762455	\N	\N
+20	Clare Crown	pingglig	pingglig@gmail.com	3bc68955-e57d-1664-530b-7f0ac5ea0e28	f	2019-02-04 04:24:38.763293	\N	\N
+21	Ami Bohl	shieldlo	shieldlo@gmail.com	ba1c2082-59f1-4794-617e-70c3efe92994	f	2019-02-04 04:24:38.764095	\N	\N
+22	Marquetta Raab	headchefspeasy	headchefspeasy@gmail.com	3f4fc72c-8553-59ef-d713-588a26ec50fa	f	2019-02-04 04:24:38.764912	\N	\N
+23	Elon Musk	taxonomyperihelion	taxonomyperihelion@gmail.com	f6c3adce-5a97-71a5-6332-ddf5b8b791cb	f	2019-02-04 04:24:38.765712	\N	\N
+24	Shareef O Neef	Maquetta	Maquetta@gmail.com	e9c53da9-5022-b273-5f0e-e469f3adf3a0	f	2019-02-04 04:24:38.766465	\N	\N
+25	Making Beef	checkdela	checkdela@gmail.com	5d640ed6-7a16-ddae-3869-6d06152f5873	f	2019-02-04 04:24:38.76735	\N	\N
+26	donald	donald	donald@gmail.com	0d343c0f-0ca7-63f9-83c8-042350059f56	f	2019-02-04 04:36:07.654254	2019-02-04 05:18:58.271997	\\x6c564d41327776302d49647649685f58635f3846434249334e6a496863396a6c
+\.
+
+
+--
 -- Name: users_userid_seq; Type: SEQUENCE SET; Schema: public; Owner: indie
 --
 
-SELECT pg_catalog.setval('public.users_userid_seq', 37, true);
+SELECT pg_catalog.setval('public.users_userid_seq', 26, true);
 
 
 --
--- Name: fundings fundings_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+-- Name: fundings_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.fundings
@@ -915,7 +768,7 @@ ALTER TABLE ONLY public.fundings
 
 
 --
--- Name: keywords keywords_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+-- Name: keywords_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.keywords
@@ -923,7 +776,7 @@ ALTER TABLE ONLY public.keywords
 
 
 --
--- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+-- Name: notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.notifications
@@ -931,7 +784,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- Name: projects projects_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+-- Name: projects_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.projects
@@ -939,7 +792,7 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- Name: queries queries_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+-- Name: queries_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.queries
@@ -947,7 +800,7 @@ ALTER TABLE ONLY public.queries
 
 
 --
--- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: indie
+-- Name: users_email_key; Type: CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.users
@@ -955,7 +808,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
+-- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.users
@@ -963,7 +816,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: indie
+-- Name: users_username_key; Type: CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.users
@@ -971,7 +824,21 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: fundings fundings_projectid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+-- Name: notify_fully_funded; Type: TRIGGER; Schema: public; Owner: indie
+--
+
+CREATE TRIGGER notify_fully_funded AFTER INSERT OR UPDATE ON public.fundings FOR EACH ROW EXECUTE PROCEDURE public.notify_fully_funded();
+
+
+--
+-- Name: notify_funding; Type: TRIGGER; Schema: public; Owner: indie
+--
+
+CREATE TRIGGER notify_funding AFTER INSERT OR UPDATE ON public.fundings FOR EACH ROW EXECUTE PROCEDURE public.notify_funding();
+
+
+--
+-- Name: fundings_projectid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.fundings
@@ -979,7 +846,7 @@ ALTER TABLE ONLY public.fundings
 
 
 --
--- Name: fundings fundings_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+-- Name: fundings_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.fundings
@@ -987,7 +854,7 @@ ALTER TABLE ONLY public.fundings
 
 
 --
--- Name: keywords keywords_projectid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+-- Name: keywords_projectid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.keywords
@@ -995,7 +862,7 @@ ALTER TABLE ONLY public.keywords
 
 
 --
--- Name: notifications notifications_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+-- Name: notifications_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.notifications
@@ -1003,7 +870,7 @@ ALTER TABLE ONLY public.notifications
 
 
 --
--- Name: projects projects_owner_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+-- Name: projects_owner_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.projects
@@ -1011,7 +878,7 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- Name: queries queries_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
+-- Name: queries_userid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: indie
 --
 
 ALTER TABLE ONLY public.queries
@@ -1022,6 +889,9 @@ ALTER TABLE ONLY public.queries
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
 --
 
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
