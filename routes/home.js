@@ -17,7 +17,8 @@ router.get("/", async (req, res, next) => {
                        FROM projects p LEFT JOIN fundings f ON p.projectid = f.projectid GROUP BY p.projectid) \
                        SELECT t.*, (t.amountfunded / t.amountsought * 100.0) as percentagefunded, \
                        DATE_PART(\'days\', t.duedate - now()) as daysleft \
-                       FROM totalfunding t LIMIT 4'
+                       FROM totalfunding t ' +
+                       'WHERE daysleft > 0'
     
     let carouselProjects = await db.query(daysLeftQuery)
     if (carouselProjects.rows.length === 0) {
